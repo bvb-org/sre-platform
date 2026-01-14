@@ -1,9 +1,59 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { AlertCircle, Plus, Clock } from 'lucide-react';
+import { StatusBadge } from '@/app/components/StatusBadge';
+import { formatRelativeTime, formatDuration } from '@/lib/utils';
+
+type Incident = {
+  id: string;
+  incidentNumber: string;
+  title: string;
+  description: string;
+  severity: string;
+  status: string;
+  createdAt: string;
+  detectedAt: string;
+  resolvedAt?: string;
+  incidentLead?: {
+    name: string;
+  };
+  _count: {
+    timelineEvents: number;
+    actionItems: number;
+  };
+};
 
 export default function IncidentsPage() {
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>('all');
+
+  useEffect(() => {
+    fetchIncidents();
+  }, [filter]);
+
+  const fetchIncidents = async () => {
+    try {
+      const url = filter === 'all' 
+        ? '/api/incidents' 
+        : `/api/incidents?status=${filter}`;
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        setIncidents(data);
+      }
+    } catch (error) {
+      console.error('Error fetching incidents:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background-secondary">
+    <div className="min-h-screen bg-background">
+      {/* Navigation */}
       <nav className="border-b border-border bg-white">
         <div className="max-w-content mx-auto px-8 py-4">
           <div className="flex items-center justify-between">
@@ -12,14 +62,14 @@ export default function IncidentsPage() {
                 SRE Platform
               </Link>
               <div className="flex space-x-6">
-                <Link 
-                  href="/incidents" 
-                  className="text-sm font-semibold text-text-primary"
+                <Link
+                  href="/incidents"
+                  className="text-sm text-text-primary font-medium"
                 >
                   Incidents
                 </Link>
-                <Link 
-                  href="/runbooks" 
+                <Link
+                  href="/runbooks"
                   className="text-sm text-text-secondary hover:text-text-primary transition-colors"
                 >
                   Runbooks
@@ -30,20 +80,129 @@ export default function IncidentsPage() {
         </div>
       </nav>
 
+      {/* Main Content */}
       <main className="max-w-content mx-auto px-8 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-text-primary">Incidents</h1>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-text-primary">Incidents</h1>
+            <p className="text-text-secondary mt-1">
+              Track and manage all incidents
+            </p>
+          </div>
           <Link
             href="/incidents/new"
-            className="px-4 py-2 bg-status-critical text-white font-semibold rounded-lg hover:bg-red-600 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-status-critical text-white font-semibold rounded-lg hover:bg-red-600 transition-colors"
           >
+            <Plus className="w-5 h-5" />
             Declare Incident
           </Link>
         </div>
 
-        <div className="bg-white border border-border rounded-lg p-8 text-center">
-          <p className="text-text-secondary">No incidents yet. Declare your first incident to get started.</p>
+        {/* Filters */}
+        <div className="flex gap-2 mb-6">
+          {['all', 'active', 'investigating', 'mitigated', 'resolved', 'closed'].map((status) => (
+            <button
+              key={status}
+              onClick={() => setFilter(status)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                filter === status
+                  ? 'bg-status-info text-white'
+                  : 'bg-white text-text-secondary border border-border hover:border-text-secondary'
+              }`}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </button>
+          ))}
         </div>
+
+        {/* Incidents List */}
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-text-secondary">Loading incidents...</p>
+          </div>
+        ) : incidents.length === 0 ? (
+          <div className="bg-white border border-border rounded-lg p-12 text-center">
+            <AlertCircle className="w-12 h-12 text-text-secondary mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-text-primary mb-2">
+              No incidents found
+            </h3>
+            <p className="text-text-secondary mb-6">
+              {filter === 'all'
+                ? 'Get started by declaring your first incident'
+                : `No incidents with status "${filter}"`}
+            </p>
+            <Link
+              href="/incidents/new"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-status-critical text-white font-semibold rounded-lg hover:bg-red-600 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              Declare Incident
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {incidents.map((incident) => (
+              <Link
+                key={incident.id}
+                href={`/incidents/${incident.id}`}
+                className="block bg-white border border-border rounded-lg p-6 hover:border-status-info transition-colors"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-sm font-mono text-text-secondary">
+                        {incident.incidentNumber}
+                      </span>
+                      <StatusBadge status={incident.status} />
+                      <span className="text-xs text-text-secondary">
+                        {formatRelativeTime(incident.createdAt)}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-text-primary mb-2">
+                      {incident.title}
+                    </h3>
+                    <p className="text-sm text-text-secondary line-clamp-2 mb-3">
+                      {incident.description}
+                    </p>
+                    <div className="flex items-center gap-4 text-xs text-text-secondary">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        <span>
+                          {formatDuration(
+                            new Date(incident.detectedAt),
+                            incident.resolvedAt ? new Date(incident.resolvedAt) : undefined
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4" />
+                        <span className="capitalize">
+                          {incident.severity.replace('_', ' ')}
+                        </span>
+                      </div>
+                      {incident.incidentLead && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-4 h-4 bg-accent-purple/10 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-medium text-accent-purple">
+                              {incident.incidentLead.name.charAt(0)}
+                            </span>
+                          </div>
+                          <span>{incident.incidentLead.name}</span>
+                        </div>
+                      )}
+                      <span>
+                        {incident._count.timelineEvents} updates
+                      </span>
+                      <span>
+                        {incident._count.actionItems} actions
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );

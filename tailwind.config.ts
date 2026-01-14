@@ -36,14 +36,6 @@ const config: Config = {
           purple: "#8B5CF6",
         },
       },
-      spacing: {
-        // Consistent spacing scale
-        '4': '4px',
-        '8': '8px',
-        '16': '16px',
-        '24': '24px',
-        '32': '32px',
-      },
       maxWidth: {
         'content': '1200px',
       },
