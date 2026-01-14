@@ -8,6 +8,7 @@ import { StatusBadge } from '@/app/components/StatusBadge';
 import { formatDuration, formatRelativeTime } from '@/lib/utils';
 import { OverviewTab } from './components/OverviewTab';
 import { InvestigationTab } from './components/InvestigationTab';
+import { PostmortemTab } from './components/PostmortemTab';
 
 type Incident = {
   id: string;
@@ -238,11 +239,7 @@ export default function IncidentDetailPage() {
               <InvestigationTab incident={incident} onRefresh={fetchIncident} />
             )}
             {activeTab === 'postmortem' && (
-              <div className="bg-white border border-border rounded-lg p-8 text-center">
-                <p className="text-text-secondary">
-                  Post-mortem functionality will be available in Stage 2
-                </p>
-              </div>
+              <PostmortemTab incident={incident} onRefresh={fetchIncident} />
             )}
           </div>
 

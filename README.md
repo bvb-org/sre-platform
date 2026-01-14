@@ -38,7 +38,7 @@ An incident.io and rootly.ai-inspired platform for incident management, AI-power
 2. **Create environment file**
    ```bash
    cp .env.example .env
-   # Edit .env and add your OPENAI_API_KEY
+   # Edit .env and add your ANTHROPIC_API_KEY
    ```
 
 3. **Start with Docker Compose**
@@ -160,7 +160,7 @@ See `.env.example` for all available configuration options.
 
 Required:
 - `DATABASE_URL` - PostgreSQL connection string
-- `OPENAI_API_KEY` - OpenAI API key for AI features
+- `ANTHROPIC_API_KEY` - ANTHROPIC_API_KEY API key for AI features
 
 Optional:
 - `WEBSOCKET_URL` - WebSocket server URL

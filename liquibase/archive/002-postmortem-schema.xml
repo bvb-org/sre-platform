@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- Create postmortems table -->
+    <changeSet id="002-1" author="sre-platform">
+        <createTable tableName="postmortems">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="incident_id" type="uuid">
+                <constraints nullable="false" unique="true" foreignKeyName="fk_postmortem_incident" references="incidents(id)" deleteCascade="true"/>
+            </column>
+            <column name="status" type="varchar(50)" defaultValue="draft">
+                <constraints nullable="false"/>
+            </column>
+            <column name="introduction" type="text"/>
+            <column name="timeline_summary" type="text"/>
+            <column name="root_cause" type="text"/>
+            <column name="impact_analysis" type="text"/>
+            <column name="how_we_fixed_it" type="text"/>
+            <column name="action_items" type="jsonb"/>
+            <column name="lessons_learned" type="text"/>
+            <column name="created_by_id" type="uuid">
+                <constraints foreignKeyName="fk_postmortem_creator" references="users(id)"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="published_at" type="timestamp"/>
+        </createTable>
+    </changeSet>
+
+    <!-- Create postmortem_images table -->
+    <changeSet id="002-2" author="sre-platform">
+        <createTable tableName="postmortem_images">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="postmortem_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_postmortem_image" references="postmortems(id)" deleteCascade="true"/>
+            </column>
+            <column name="image_url" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="caption" type="text"/>
+            <column name="section" type="varchar(100)"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- Create index on postmortem_id for images -->
+    <changeSet id="002-3" author="sre-platform">
+        <createIndex indexName="idx_postmortem_images_postmortem_id" tableName="postmortem_images">
+            <column name="postmortem_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Create index on incident_id for postmortems -->
+    <changeSet id="002-4" author="sre-platform">
+        <createIndex indexName="idx_postmortems_incident_id" tableName="postmortems">
+            <column name="incident_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
