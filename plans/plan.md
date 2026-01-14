@@ -99,7 +99,7 @@ Building an incident.io and rootly.ai-inspired platform for incident management,
   - Incident number (INC-XXXXXX from ServiceNow)
   - Title (required)
   - Short description (required)
-  - Severity (dropdown: Minor, Major, Critical)
+  - Severity (dropdown: Major, Preemptive major)
   - Incident lead (auto-populate with current user/Manager on Duty)
 - [ ] Form validation and submission
 - [ ] Redirect to incident detail page after creation
@@ -112,7 +112,7 @@ Building an incident.io and rootly.ai-inspired platform for incident management,
 
 **Left side (main content):**
 - [ ] Incident header:
-  - Incident number (INC-XXXX) with breadcrumb
+  - Incident number (INCXXXX) with breadcrumb
   - Title (large, bold)
   - Tab navigation: Overview | Investigation | Post-mortem
 - [ ] Problem statement section (editable)
@@ -123,12 +123,10 @@ Building an incident.io and rootly.ai-inspired platform for incident management,
   - Add action items with checkboxes
   - Assign to users (avatar display)
   - Mark complete/incomplete
-- [ ] Quick actions: "Start a call" | "Create a stream" buttons
 
 **Right sidebar (metadata):**
 - [ ] Status badge (Active, Investigating, Mitigated, Resolved, Closed)
 - [ ] Severity indicator with icon
-- [ ] Type (Production, Staging, etc.)
 - [ ] Duration (auto-calculated, live updating)
 - [ ] **Roles section:**
   - Incident lead (with avatar)
@@ -136,19 +134,16 @@ Building an incident.io and rootly.ai-inspired platform for incident management,
   - Active participants (avatar list)
   - Observers
 - [ ] **Links section:**
-  - Related incidents
+  - Related incidents from ServiceNow
   - Status pages
   - ServiceNow incident link
-  - Azure DevOps work item link (optional)
-  - Escalations
 - [ ] **Custom fields:**
-  - Affected teams (tags with colors)
-  - Features/Services affected (tags)
-  - Impacted device operations
-  - Affected customers
-  - Escalate to engineering? (Yes/No)
-  - Number of affected customers
-  - Customer lead owners
+  - Services affected (tags)
+  - Affected customers (number)
+  - Escalated to core team? (Yes/No)
+      - if yes, input which core team(s)
+  - Customer affected? (Yes/No)
+     - if yes, how many
 - [ ] Timestamps and duration metrics section
 
 ### 1.3 Investigation Tab - Activity Timeline
