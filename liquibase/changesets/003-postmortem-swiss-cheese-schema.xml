@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="003-postmortem-swiss-cheese-schema" author="system">
+        <comment>Add Swiss cheese model and business impact fields to postmortems table</comment>
+
+        <!-- Drop old fields that are being replaced -->
+        <dropColumn tableName="postmortems">
+            <column name="introduction"/>
+        </dropColumn>
+        <dropColumn tableName="postmortems">
+            <column name="timeline_summary"/>
+        </dropColumn>
+        <dropColumn tableName="postmortems">
+            <column name="root_cause"/>
+        </dropColumn>
+        <dropColumn tableName="postmortems">
+            <column name="impact_analysis"/>
+        </dropColumn>
+        <dropColumn tableName="postmortems">
+            <column name="how_we_fixed_it"/>
+        </dropColumn>
+        <dropColumn tableName="postmortems">
+            <column name="lessons_learned"/>
+        </dropColumn>
+
+        <!-- Business Impact Section -->
+        <addColumn tableName="postmortems">
+            <column name="business_impact_application" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="postmortems">
+            <column name="business_impact_start" type="TIMESTAMP">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="postmortems">
+            <column name="business_impact_end" type="TIMESTAMP">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="postmortems">
+            <column name="business_impact_duration" type="INTEGER">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="postmortems">
+            <column name="business_impact_description" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="postmortems">
+            <column name="business_impact_affected_countries" type="JSONB">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="postmortems">
+            <column name="business_impact_regulatory_reporting" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="postmortems">
+            <column name="business_impact_regulatory_entity" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <!-- Mitigation Section -->
+        <addColumn tableName="postmortems">
+            <column name="mitigation_description" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <!-- Swiss Cheese Model - Systemic Causal Analysis -->
+        <addColumn tableName="postmortems">
+            <column name="causal_analysis" type="JSONB">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <comment>
+            causal_analysis JSONB structure:
+            [
+              {
+                "interceptionLayer": "define|design|build|test|release|deploy|operate|response",
+                "cause": "string",
+                "subCause": "string",
+                "description": "string"
+              }
+            ]
+        </comment>
+    </changeSet>
+
+</databaseChangeLog>

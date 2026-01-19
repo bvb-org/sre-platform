@@ -103,24 +103,38 @@ model IncidentService {
 }
 
 model Postmortem {
-  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  incidentId      String             @unique @map("incident_id") @db.Uuid
-  status          String             @db.VarChar(20)
-  introduction    String?            @db.Text
-  timelineSummary String?            @map("timeline_summary") @db.Text
-  rootCause       String?            @map("root_cause") @db.Text
-  impactAnalysis  String?            @map("impact_analysis") @db.Text
-  howWeFixedIt    String?            @map("how_we_fixed_it") @db.Text
-  actionItems     Json?              @map("action_items") @db.JsonB
-  lessonsLearned  String?            @map("lessons_learned") @db.Text
-  createdById     String?            @map("created_by_id") @db.Uuid
-  createdAt       DateTime           @default(now()) @map("created_at")
-  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at")
-  publishedAt     DateTime?          @map("published_at")
+  id                                    String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  incidentId                            String             @unique @map("incident_id") @db.Uuid
+  status                                String             @db.VarChar(20)
   
-  incident        Incident           @relation(fields: [incidentId], references: [id], onDelete: Cascade)
-  createdBy       User?              @relation(fields: [createdById], references: [id])
-  images          PostmortemImage[]
+  // Business Impact Section
+  businessImpactApplication             String?            @map("business_impact_application") @db.VarChar(255)
+  businessImpactStart                   DateTime?          @map("business_impact_start")
+  businessImpactEnd                     DateTime?          @map("business_impact_end")
+  businessImpactDuration                Int?               @map("business_impact_duration")
+  businessImpactDescription             String?            @map("business_impact_description") @db.Text
+  businessImpactAffectedCountries       Json?              @map("business_impact_affected_countries") @db.JsonB
+  businessImpactRegulatoryReporting     Boolean?           @map("business_impact_regulatory_reporting")
+  businessImpactRegulatoryEntity        String?            @map("business_impact_regulatory_entity") @db.VarChar(255)
+  
+  // Mitigation Section
+  mitigationDescription                 String?            @map("mitigation_description") @db.Text
+  
+  // Swiss Cheese Model - Systemic Causal Analysis
+  causalAnalysis                        Json?              @map("causal_analysis") @db.JsonB
+  
+  // Action Items (kept from old schema)
+  actionItems                           Json?              @map("action_items") @db.JsonB
+  
+  // Metadata
+  createdById                           String?            @map("created_by_id") @db.Uuid
+  createdAt                             DateTime           @default(now()) @map("created_at")
+  updatedAt                             DateTime           @default(now()) @updatedAt @map("updated_at")
+  publishedAt                           DateTime?          @map("published_at")
+  
+  incident                              Incident           @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  createdBy                             User?              @relation(fields: [createdById], references: [id])
+  images                                PostmortemImage[]
 
   @@map("postmortems")
 }

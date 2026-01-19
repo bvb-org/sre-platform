@@ -27,24 +27,38 @@ export async function GET(
       return NextResponse.json({ postmortem: null }, { status: 200 });
     }
 
+    const row = result.rows[0];
     const postmortem = {
-      id: result.rows[0].id,
-      incidentId: result.rows[0].incident_id,
-      status: result.rows[0].status,
-      introduction: result.rows[0].introduction,
-      timelineSummary: result.rows[0].timeline_summary,
-      rootCause: result.rows[0].root_cause,
-      impactAnalysis: result.rows[0].impact_analysis,
-      howWeFixedIt: result.rows[0].how_we_fixed_it,
-      actionItems: result.rows[0].action_items || [],
-      lessonsLearned: result.rows[0].lessons_learned,
+      id: row.id,
+      incidentId: row.incident_id,
+      status: row.status,
+      
+      // Business Impact
+      businessImpactApplication: row.business_impact_application,
+      businessImpactStart: row.business_impact_start,
+      businessImpactEnd: row.business_impact_end,
+      businessImpactDuration: row.business_impact_duration,
+      businessImpactDescription: row.business_impact_description,
+      businessImpactAffectedCountries: row.business_impact_affected_countries || [],
+      businessImpactRegulatoryReporting: row.business_impact_regulatory_reporting,
+      businessImpactRegulatoryEntity: row.business_impact_regulatory_entity,
+      
+      // Mitigation
+      mitigationDescription: row.mitigation_description,
+      
+      // Causal Analysis
+      causalAnalysis: row.causal_analysis || [],
+      
+      // Action Items
+      actionItems: row.action_items || [],
+      
       createdBy: {
-        name: result.rows[0].creator_name,
-        email: result.rows[0].creator_email,
+        name: row.creator_name,
+        email: row.creator_email,
       },
-      createdAt: result.rows[0].created_at,
-      updatedAt: result.rows[0].updated_at,
-      publishedAt: result.rows[0].published_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      publishedAt: row.published_at,
     };
 
     return NextResponse.json(postmortem);
@@ -123,11 +137,13 @@ export async function POST(
       }
 
       // Generate postmortem using Anthropic Claude
+      console.log('[DEBUG] Building prompt for AI generation');
       const prompt = buildPostmortemPrompt(incident);
       
+      console.log('[DEBUG] Calling Anthropic API...');
       const message = await anthropic.messages.create({
         model: 'claude-sonnet-4-5',
-        max_tokens: 4096,
+        max_tokens: 8192,
         messages: [
           {
             role: 'user',
@@ -136,12 +152,17 @@ export async function POST(
         ],
       });
 
-      const generatedContent = message.content[0].type === 'text' 
-        ? message.content[0].text 
+      const generatedContent = message.content[0].type === 'text'
+        ? message.content[0].text
         : '';
 
+      console.log('[DEBUG] AI response received, length:', generatedContent.length);
+      console.log('[DEBUG] AI response content:', generatedContent);
+
       // Parse the AI response into structured sections
-      const sections = parsePostmortemSections(generatedContent);
+      console.log('[DEBUG] Parsing AI response into sections...');
+      const sections = parsePostmortemSections(generatedContent, incident);
+      console.log('[DEBUG] Parsed sections:', JSON.stringify(sections, null, 2));
 
       // Check if postmortem already exists
       const existingResult = await pool.query(
@@ -156,23 +177,31 @@ export async function POST(
         postmortemId = existingResult.rows[0].id;
         await pool.query(
           `UPDATE postmortems 
-          SET introduction = $1,
-              timeline_summary = $2,
-              root_cause = $3,
-              impact_analysis = $4,
-              how_we_fixed_it = $5,
-              action_items = $6,
-              lessons_learned = $7,
+          SET business_impact_application = $1,
+              business_impact_start = $2,
+              business_impact_end = $3,
+              business_impact_duration = $4,
+              business_impact_description = $5,
+              business_impact_affected_countries = $6,
+              business_impact_regulatory_reporting = $7,
+              business_impact_regulatory_entity = $8,
+              mitigation_description = $9,
+              causal_analysis = $10,
+              action_items = $11,
               updated_at = CURRENT_TIMESTAMP
-          WHERE id = $8`,
+          WHERE id = $12`,
           [
-            sections.introduction,
-            sections.timelineSummary,
-            sections.rootCause,
-            sections.impactAnalysis,
-            sections.howWeFixedIt,
+            sections.businessImpactApplication,
+            sections.businessImpactStart,
+            sections.businessImpactEnd,
+            sections.businessImpactDuration,
+            sections.businessImpactDescription,
+            JSON.stringify(sections.businessImpactAffectedCountries),
+            sections.businessImpactRegulatoryReporting,
+            sections.businessImpactRegulatoryEntity,
+            sections.mitigationDescription,
+            JSON.stringify(sections.causalAnalysis),
             JSON.stringify(sections.actionItems),
-            sections.lessonsLearned,
             postmortemId,
           ]
         );
@@ -180,21 +209,35 @@ export async function POST(
         // Create new postmortem
         const insertResult = await pool.query(
           `INSERT INTO postmortems (
-            id, incident_id, status, introduction, timeline_summary,
-            root_cause, impact_analysis, how_we_fixed_it, action_items,
-            lessons_learned, created_by_id
+            id, incident_id, status,
+            business_impact_application,
+            business_impact_start,
+            business_impact_end,
+            business_impact_duration,
+            business_impact_description,
+            business_impact_affected_countries,
+            business_impact_regulatory_reporting,
+            business_impact_regulatory_entity,
+            mitigation_description,
+            causal_analysis,
+            action_items,
+            created_by_id
           ) VALUES (
-            gen_random_uuid(), $1, 'draft', $2, $3, $4, $5, $6, $7, $8, $9
+            gen_random_uuid(), $1, 'draft', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
           ) RETURNING id`,
           [
             params.id,
-            sections.introduction,
-            sections.timelineSummary,
-            sections.rootCause,
-            sections.impactAnalysis,
-            sections.howWeFixedIt,
+            sections.businessImpactApplication,
+            sections.businessImpactStart,
+            sections.businessImpactEnd,
+            sections.businessImpactDuration,
+            sections.businessImpactDescription,
+            JSON.stringify(sections.businessImpactAffectedCountries),
+            sections.businessImpactRegulatoryReporting,
+            sections.businessImpactRegulatoryEntity,
+            sections.mitigationDescription,
+            JSON.stringify(sections.causalAnalysis),
             JSON.stringify(sections.actionItems),
-            sections.lessonsLearned,
             userId,
           ]
         );
@@ -207,19 +250,24 @@ export async function POST(
         [postmortemId]
       );
 
+      const row = postmortemResult.rows[0];
       const postmortem = {
-        id: postmortemResult.rows[0].id,
-        incidentId: postmortemResult.rows[0].incident_id,
-        status: postmortemResult.rows[0].status,
-        introduction: postmortemResult.rows[0].introduction,
-        timelineSummary: postmortemResult.rows[0].timeline_summary,
-        rootCause: postmortemResult.rows[0].root_cause,
-        impactAnalysis: postmortemResult.rows[0].impact_analysis,
-        howWeFixedIt: postmortemResult.rows[0].how_we_fixed_it,
-        actionItems: postmortemResult.rows[0].action_items || [],
-        lessonsLearned: postmortemResult.rows[0].lessons_learned,
-        createdAt: postmortemResult.rows[0].created_at,
-        updatedAt: postmortemResult.rows[0].updated_at,
+        id: row.id,
+        incidentId: row.incident_id,
+        status: row.status,
+        businessImpactApplication: row.business_impact_application,
+        businessImpactStart: row.business_impact_start,
+        businessImpactEnd: row.business_impact_end,
+        businessImpactDuration: row.business_impact_duration,
+        businessImpactDescription: row.business_impact_description,
+        businessImpactAffectedCountries: row.business_impact_affected_countries || [],
+        businessImpactRegulatoryReporting: row.business_impact_regulatory_reporting,
+        businessImpactRegulatoryEntity: row.business_impact_regulatory_entity,
+        mitigationDescription: row.mitigation_description,
+        causalAnalysis: row.causal_analysis || [],
+        actionItems: row.action_items || [],
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
       };
 
       return NextResponse.json(postmortem);
@@ -246,13 +294,17 @@ export async function PATCH(
   try {
     const body = await request.json();
     const {
-      introduction,
-      timelineSummary,
-      rootCause,
-      impactAnalysis,
-      howWeFixedIt,
+      businessImpactApplication,
+      businessImpactStart,
+      businessImpactEnd,
+      businessImpactDuration,
+      businessImpactDescription,
+      businessImpactAffectedCountries,
+      businessImpactRegulatoryReporting,
+      businessImpactRegulatoryEntity,
+      mitigationDescription,
+      causalAnalysis,
       actionItems,
-      lessonsLearned,
       status,
     } = body;
 
@@ -261,33 +313,49 @@ export async function PATCH(
     const values: any[] = [];
     let paramCount = 1;
 
-    if (introduction !== undefined) {
-      updates.push(`introduction = $${paramCount++}`);
-      values.push(introduction);
+    if (businessImpactApplication !== undefined) {
+      updates.push(`business_impact_application = $${paramCount++}`);
+      values.push(businessImpactApplication);
     }
-    if (timelineSummary !== undefined) {
-      updates.push(`timeline_summary = $${paramCount++}`);
-      values.push(timelineSummary);
+    if (businessImpactStart !== undefined) {
+      updates.push(`business_impact_start = $${paramCount++}`);
+      values.push(businessImpactStart);
     }
-    if (rootCause !== undefined) {
-      updates.push(`root_cause = $${paramCount++}`);
-      values.push(rootCause);
+    if (businessImpactEnd !== undefined) {
+      updates.push(`business_impact_end = $${paramCount++}`);
+      values.push(businessImpactEnd);
     }
-    if (impactAnalysis !== undefined) {
-      updates.push(`impact_analysis = $${paramCount++}`);
-      values.push(impactAnalysis);
+    if (businessImpactDuration !== undefined) {
+      updates.push(`business_impact_duration = $${paramCount++}`);
+      values.push(businessImpactDuration);
     }
-    if (howWeFixedIt !== undefined) {
-      updates.push(`how_we_fixed_it = $${paramCount++}`);
-      values.push(howWeFixedIt);
+    if (businessImpactDescription !== undefined) {
+      updates.push(`business_impact_description = $${paramCount++}`);
+      values.push(businessImpactDescription);
+    }
+    if (businessImpactAffectedCountries !== undefined) {
+      updates.push(`business_impact_affected_countries = $${paramCount++}`);
+      values.push(JSON.stringify(businessImpactAffectedCountries));
+    }
+    if (businessImpactRegulatoryReporting !== undefined) {
+      updates.push(`business_impact_regulatory_reporting = $${paramCount++}`);
+      values.push(businessImpactRegulatoryReporting);
+    }
+    if (businessImpactRegulatoryEntity !== undefined) {
+      updates.push(`business_impact_regulatory_entity = $${paramCount++}`);
+      values.push(businessImpactRegulatoryEntity);
+    }
+    if (mitigationDescription !== undefined) {
+      updates.push(`mitigation_description = $${paramCount++}`);
+      values.push(mitigationDescription);
+    }
+    if (causalAnalysis !== undefined) {
+      updates.push(`causal_analysis = $${paramCount++}`);
+      values.push(JSON.stringify(causalAnalysis));
     }
     if (actionItems !== undefined) {
       updates.push(`action_items = $${paramCount++}`);
       values.push(JSON.stringify(actionItems));
-    }
-    if (lessonsLearned !== undefined) {
-      updates.push(`lessons_learned = $${paramCount++}`);
-      values.push(lessonsLearned);
     }
     if (status !== undefined) {
       updates.push(`status = $${paramCount++}`);
@@ -316,20 +384,25 @@ export async function PATCH(
       );
     }
 
+    const row = result.rows[0];
     const postmortem = {
-      id: result.rows[0].id,
-      incidentId: result.rows[0].incident_id,
-      status: result.rows[0].status,
-      introduction: result.rows[0].introduction,
-      timelineSummary: result.rows[0].timeline_summary,
-      rootCause: result.rows[0].root_cause,
-      impactAnalysis: result.rows[0].impact_analysis,
-      howWeFixedIt: result.rows[0].how_we_fixed_it,
-      actionItems: result.rows[0].action_items || [],
-      lessonsLearned: result.rows[0].lessons_learned,
-      createdAt: result.rows[0].created_at,
-      updatedAt: result.rows[0].updated_at,
-      publishedAt: result.rows[0].published_at,
+      id: row.id,
+      incidentId: row.incident_id,
+      status: row.status,
+      businessImpactApplication: row.business_impact_application,
+      businessImpactStart: row.business_impact_start,
+      businessImpactEnd: row.business_impact_end,
+      businessImpactDuration: row.business_impact_duration,
+      businessImpactDescription: row.business_impact_description,
+      businessImpactAffectedCountries: row.business_impact_affected_countries || [],
+      businessImpactRegulatoryReporting: row.business_impact_regulatory_reporting,
+      businessImpactRegulatoryEntity: row.business_impact_regulatory_entity,
+      mitigationDescription: row.mitigation_description,
+      causalAnalysis: row.causal_analysis || [],
+      actionItems: row.action_items || [],
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      publishedAt: row.published_at,
     };
 
     return NextResponse.json(postmortem);
@@ -346,7 +419,7 @@ function buildPostmortemPrompt(incident: any): string {
   const timelineEvents = incident.timeline_events || [];
   const services = incident.services || [];
 
-  return `You are an expert Site Reliability Engineer writing a comprehensive postmortem for a production incident. Generate a detailed, professional postmortem based on the following incident data:
+  return `You are an expert Site Reliability Engineer writing a comprehensive postmortem for a production incident using the Swiss cheese model methodology. Generate a detailed, professional postmortem based on the following incident data:
 
 **Incident Details:**
 - Incident Number: ${incident.incident_number}
@@ -374,26 +447,30 @@ ${timelineEvents.map((e: any) => `- ${e.createdAt}: [${e.type}] ${e.description}
 
 Please generate a comprehensive postmortem with the following sections. Use clear section markers:
 
-[INTRODUCTION]
-Provide a concise executive summary of what happened, when it happened, and the overall impact.
+[BUSINESS_IMPACT]
+Provide structured business impact information:
+- Application: Name of the affected application
+- Start Time: When the impact started (ISO format)
+- End Time: When the impact ended (ISO format)
+- Description: Detailed description of which specific functionalities were not available for end customers/consumers
+- Affected Countries: JSON array of country codes (e.g., ["US", "UK", "DE"])
+- Regulatory Reporting: true/false if regulatory reporting is needed
+- Regulatory Entity: If reporting needed, specify entity (e.g., "DORA", "ECB")
 
-[TIMELINE_SUMMARY]
-Create a clear timeline of key events from detection to resolution, highlighting critical moments.
+[MITIGATION]
+Describe all actions, resilience patterns, or decisions that were taken to mitigate the incident. Be specific about what was done and why.
 
-[ROOT_CAUSE]
-Analyze and explain the root cause of the incident. Be specific and technical where appropriate.
+[CAUSAL_ANALYSIS]
+Provide a systemic causal analysis using the Swiss cheese model. For each identified failure, specify:
+- Interception Layer: One of [define, design, build, test, release, deploy, operate, response]
+- Cause: The primary cause category (e.g., "Alerting gaps", "Architectural weakness", "Change management failure")
+- Sub-cause: The specific sub-cause (e.g., "Missing alerts for key metrics", "Lack of modularity", "Lack of coordination")
+- Description: Brief explanation
+- Action Items: Array of action items specific to this cause, each with "description" and "priority" (high/medium/low)
 
-[IMPACT_ANALYSIS]
-Detail the impact on services, customers, and business operations. Include metrics if available.
+Format as JSON array: [{"interceptionLayer": "...", "cause": "...", "subCause": "...", "description": "...", "actionItems": [{"description": "...", "priority": "..."}]}]
 
-[HOW_WE_FIXED_IT]
-Describe the steps taken to resolve the incident, including any workarounds or permanent fixes.
-
-[ACTION_ITEMS]
-List 3-5 specific, actionable items to prevent similar incidents. Format as JSON array with objects containing "description" and "priority" (high/medium/low) fields.
-
-[LESSONS_LEARNED]
-Reflect on what went well, what didn't, and key takeaways for the team.
+Note: Action items should be directly related to addressing the specific cause they are nested under.
 
 Be professional, factual, and constructive. Focus on learning and improvement rather than blame.`;
 }
@@ -412,65 +489,122 @@ function calculateDuration(start: string, end?: string): string {
   return `${minutes}m`;
 }
 
-function parsePostmortemSections(content: string): any {
+function parsePostmortemSections(content: string, incident: any): any {
   const sections: any = {
-    introduction: '',
-    timelineSummary: '',
-    rootCause: '',
-    impactAnalysis: '',
-    howWeFixedIt: '',
-    actionItems: [],
-    lessonsLearned: '',
+    businessImpactApplication: null,
+    businessImpactStart: null,
+    businessImpactEnd: null,
+    businessImpactDuration: null,
+    businessImpactDescription: null,
+    businessImpactAffectedCountries: [],
+    businessImpactRegulatoryReporting: false,
+    businessImpactRegulatoryEntity: null,
+    mitigationDescription: null,
+    causalAnalysis: [],
+    actionItems: [], // Keep for backward compatibility, but will be empty
   };
 
-  // Extract sections using markers
-  const introMatch = content.match(/\[INTRODUCTION\]([\s\S]*?)(?=\[|$)/);
-  if (introMatch) sections.introduction = introMatch[1].trim();
-
-  const timelineMatch = content.match(/\[TIMELINE_SUMMARY\]([\s\S]*?)(?=\[|$)/);
-  if (timelineMatch) sections.timelineSummary = timelineMatch[1].trim();
-
-  const rootCauseMatch = content.match(/\[ROOT_CAUSE\]([\s\S]*?)(?=\[|$)/);
-  if (rootCauseMatch) sections.rootCause = rootCauseMatch[1].trim();
-
-  const impactMatch = content.match(/\[IMPACT_ANALYSIS\]([\s\S]*?)(?=\[|$)/);
-  if (impactMatch) sections.impactAnalysis = impactMatch[1].trim();
-
-  const fixedMatch = content.match(/\[HOW_WE_FIXED_IT\]([\s\S]*?)(?=\[|$)/);
-  if (fixedMatch) sections.howWeFixedIt = fixedMatch[1].trim();
-
-  const actionItemsMatch = content.match(/\[ACTION_ITEMS\]([\s\S]*?)(?=\[|$)/);
-  if (actionItemsMatch) {
-    const actionText = actionItemsMatch[1].trim();
-    // Try to parse as JSON first
-    try {
-      const jsonMatch = actionText.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        sections.actionItems = JSON.parse(jsonMatch[0]);
-      } else {
-        // Parse as bullet points
-        const items = actionText.split('\n')
-          .filter(line => line.trim().match(/^[-*•]\s/))
-          .map(line => ({
-            description: line.replace(/^[-*•]\s/, '').trim(),
-            priority: 'medium',
-          }));
-        sections.actionItems = items;
+  console.log('[DEBUG] Parsing business impact section...');
+  // Extract Business Impact
+  const businessImpactMatch = content.match(/\[BUSINESS_IMPACT\]([\s\S]*?)(?=\[|$)/);
+  if (businessImpactMatch) {
+    const impactText = businessImpactMatch[1].trim();
+    console.log('[DEBUG] Business impact text found:', impactText.substring(0, 200));
+    
+    // Try to extract structured data
+    const appMatch = impactText.match(/Application:\s*(.+)/i);
+    if (appMatch) {
+      sections.businessImpactApplication = appMatch[1].trim();
+      console.log('[DEBUG] Extracted application:', sections.businessImpactApplication);
+    }
+    
+    const startMatch = impactText.match(/Start Time:\s*(.+)/i);
+    if (startMatch) {
+      try {
+        sections.businessImpactStart = new Date(startMatch[1].trim()).toISOString();
+      } catch (e) {
+        sections.businessImpactStart = incident.detected_at;
       }
-    } catch (e) {
-      // Fallback: parse as bullet points
-      const items = actionText.split('\n')
-        .filter(line => line.trim().match(/^[-*•]\s/))
-        .map(line => ({
-          description: line.replace(/^[-*•]\s/, '').trim(),
-          priority: 'medium',
-        }));
-      sections.actionItems = items;
+    } else {
+      sections.businessImpactStart = incident.detected_at;
+    }
+    
+    const endMatch = impactText.match(/End Time:\s*(.+)/i);
+    if (endMatch) {
+      try {
+        sections.businessImpactEnd = new Date(endMatch[1].trim()).toISOString();
+      } catch (e) {
+        sections.businessImpactEnd = incident.resolved_at;
+      }
+    } else {
+      sections.businessImpactEnd = incident.resolved_at;
+    }
+    
+    // Calculate duration in minutes
+    if (sections.businessImpactStart && sections.businessImpactEnd) {
+      const start = new Date(sections.businessImpactStart);
+      const end = new Date(sections.businessImpactEnd);
+      sections.businessImpactDuration = Math.floor((end.getTime() - start.getTime()) / 60000);
+    }
+    
+    const descMatch = impactText.match(/Description:\s*(.+?)(?=\n-|\nAffected|$)/i);
+    if (descMatch) sections.businessImpactDescription = descMatch[1].trim();
+    
+    const countriesMatch = impactText.match(/Affected Countries:\s*(\[.+?\])/i);
+    if (countriesMatch) {
+      try {
+        sections.businessImpactAffectedCountries = JSON.parse(countriesMatch[1]);
+      } catch (e) {
+        sections.businessImpactAffectedCountries = [];
+      }
+    }
+    
+    const regReportingMatch = impactText.match(/Regulatory Reporting:\s*(true|false)/i);
+    if (regReportingMatch) {
+      sections.businessImpactRegulatoryReporting = regReportingMatch[1].toLowerCase() === 'true';
+    }
+    
+    const regEntityMatch = impactText.match(/Regulatory Entity:\s*(.+)/i);
+    if (regEntityMatch && sections.businessImpactRegulatoryReporting) {
+      sections.businessImpactRegulatoryEntity = regEntityMatch[1].trim().replace(/^["']|["']$/g, '');
     }
   }
 
-  const lessonsMatch = content.match(/\[LESSONS_LEARNED\]([\s\S]*?)(?=\[|$)/);
-  if (lessonsMatch) sections.lessonsLearned = lessonsMatch[1].trim();
+  console.log('[DEBUG] Parsing mitigation section...');
+  // Extract Mitigation
+  const mitigationMatch = content.match(/\[MITIGATION\]([\s\S]*?)(?=\[|$)/);
+  if (mitigationMatch) {
+    sections.mitigationDescription = mitigationMatch[1].trim();
+    console.log('[DEBUG] Mitigation description length:', sections.mitigationDescription.length);
+  } else {
+    console.log('[WARN] No mitigation section found in AI response');
+  }
+
+  console.log('[DEBUG] Parsing causal analysis section...');
+  // Extract Causal Analysis
+  const causalMatch = content.match(/\[CAUSAL_ANALYSIS\]([\s\S]*?)(?=\[|$)/);
+  if (causalMatch) {
+    const causalText = causalMatch[1].trim();
+    console.log('[DEBUG] Causal analysis text found:', causalText.substring(0, 200));
+    try {
+      const jsonMatch = causalText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        sections.causalAnalysis = JSON.parse(jsonMatch[0]);
+        console.log('[DEBUG] Parsed causal analysis items:', sections.causalAnalysis.length);
+      } else {
+        console.log('[WARN] No JSON array found in causal analysis section');
+      }
+    } catch (e) {
+      console.error('[ERROR] Failed to parse causal analysis:', e);
+      console.error('[ERROR] Causal text that failed:', causalText);
+      sections.causalAnalysis = [];
+    }
+  } else {
+    console.log('[WARN] No causal analysis section found in AI response');
+  }
+
+  // Action items are now nested within causal analysis items
+  console.log('[DEBUG] Action items are now nested within causal analysis');
 
   return sections;
 }

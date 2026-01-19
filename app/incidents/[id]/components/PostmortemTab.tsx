@@ -1,139 +1,88 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileText, Loader2, CheckCircle, AlertCircle, Sparkles, MessageSquare, Circle, Info, RefreshCw, Pause, X, Send, Bot } from 'lucide-react';
-import { formatTimestamp } from '@/lib/utils';
-
-type TimelineEvent = {
-  id: string;
-  eventType: string;
-  description: string;
-  createdAt: string;
-  user?: {
-    id: string;
-    name: string;
-    avatarUrl?: string;
-  };
-  metadata?: any;
-};
-
-type Postmortem = {
-  id: string;
-  incidentId: string;
-  status: string;
-  introduction: string;
-  timelineSummary: string;
-  rootCause: string;
-  impactAnalysis: string;
-  howWeFixedIt: string;
-  actionItems: Array<{ description: string; priority: string }>;
-  lessonsLearned: string;
-  createdAt: string;
-  updatedAt: string;
-  publishedAt?: string;
-};
+import { FileText, Loader2, CheckCircle, Sparkles, AlertTriangle, Shield, Clock } from 'lucide-react';
+import { Postmortem, GenerationStage, FIELD_TOOLTIPS, GENERATION_STAGES } from './postmortem/types';
+import { calculateDuration, useDebounce } from './postmortem/utils';
+import { InputField, TextAreaField, DateTimeField, CheckboxField, MultiSelectField, SectionCard } from './postmortem/FormFields';
+import { CausalAnalysisEditor } from './postmortem/CausalAnalysisEditor';
+import { AIChatbot } from './postmortem/AIChatbot';
 
 type PostmortemTabProps = {
   incident: any;
   onRefresh: () => void;
 };
 
-const eventTypeConfig = {
-  reported: {
-    icon: AlertCircle,
-    color: 'text-status-warning',
-    bgColor: 'bg-status-warning/10',
-    label: 'Reported',
-  },
-  accepted: {
-    icon: Circle,
-    color: 'text-status-critical',
-    bgColor: 'bg-status-critical/10',
-    label: 'Accepted',
-  },
-  update: {
-    icon: Info,
-    color: 'text-status-info',
-    bgColor: 'bg-status-info/10',
-    label: 'Update',
-  },
-  status_change: {
-    icon: RefreshCw,
-    color: 'text-accent-purple',
-    bgColor: 'bg-accent-purple/10',
-    label: 'Status Change',
-  },
-  no_update: {
-    icon: Pause,
-    color: 'text-text-secondary',
-    bgColor: 'bg-gray-100',
-    label: 'No Update',
-  },
-};
-
-type ChatMessage = {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-};
-
 export function PostmortemTab({ incident, onRefresh }: PostmortemTabProps) {
   const [postmortem, setPostmortem] = useState<Postmortem | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generationStage, setGenerationStage] = useState<GenerationStage>(null);
   const [saving, setSaving] = useState(false);
-  const [showChatbot, setShowChatbot] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [currentMessage, setCurrentMessage] = useState('');
-  const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [autoGenerateAttempted, setAutoGenerateAttempted] = useState(false);
+  const [hasPostmortem, setHasPostmortem] = useState(false);
+  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
 
   useEffect(() => {
     fetchPostmortem();
+    fetchUsers();
   }, [incident.id]);
 
-  // Auto-generate postmortem when tab is accessed if conditions are met
-  useEffect(() => {
-    const canGenerate = incident.status === 'resolved' || incident.status === 'closed';
-    
-    // Check if postmortem is empty (all key fields are empty or null)
-    const isPostmortemEmpty = postmortem && (
-      !postmortem.introduction?.trim() &&
-      !postmortem.timelineSummary?.trim() &&
-      !postmortem.rootCause?.trim() &&
-      !postmortem.impactAnalysis?.trim() &&
-      !postmortem.howWeFixedIt?.trim() &&
-      !postmortem.lessonsLearned?.trim()
-    );
-    
-    if (!loading && (!postmortem || isPostmortemEmpty) && canGenerate && !autoGenerateAttempted && !generating) {
-      setAutoGenerateAttempted(true);
-      generatePostmortem(true); // Pass true to indicate auto-generation
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users');
+      if (!response.ok) throw new Error('Failed to fetch users');
+      const data = await response.json();
+      setUsers(data || []);
+    } catch (error) {
+      console.error('[ERROR] Error fetching users:', error);
+      setUsers([]);
     }
-  }, [loading, postmortem, incident.status, autoGenerateAttempted, generating]);
+  };
 
   const fetchPostmortem = async () => {
     try {
+      console.log('[DEBUG] Fetching postmortem for incident:', incident.id);
       const response = await fetch(`/api/incidents/${incident.id}/postmortem`);
       if (!response.ok) throw new Error('Failed to fetch postmortem');
       const data = await response.json();
-      setPostmortem(data.postmortem || data);
+      
+      console.log('[DEBUG] Fetched data:', data);
+      
+      // Handle both response formats: {postmortem: null} or direct postmortem object
+      const postmortemData = data.postmortem !== undefined ? data.postmortem : (data.id ? data : null);
+      
+      console.log('[DEBUG] Processed postmortem data:', postmortemData);
+      setPostmortem(postmortemData);
+      setHasPostmortem(postmortemData !== null);
     } catch (error) {
-      console.error('Error fetching postmortem:', error);
+      console.error('[ERROR] Error fetching postmortem:', error);
+      setPostmortem(null);
+      setHasPostmortem(false);
     } finally {
       setLoading(false);
     }
   };
 
-  const generatePostmortem = async (autoGenerate: boolean = false) => {
-    // Only show confirmation if manually triggered
-    if (!autoGenerate && !confirm('Generate AI postmortem? This will analyze the incident data and create a comprehensive postmortem document.')) {
-      return;
+  const generatePostmortem = async () => {
+    // Check if any fields are filled
+    const hasContent = postmortem && (
+      postmortem.businessImpactDescription ||
+      postmortem.mitigationDescription ||
+      (postmortem.causalAnalysis && postmortem.causalAnalysis.length > 0)
+    );
+
+    if (hasContent) {
+      if (!confirm('This will overwrite all existing content with AI-generated data. Do you want to continue?')) {
+        return;
+      }
     }
 
+    console.log('[DEBUG] Starting AI generation...');
     setGenerating(true);
+    setGenerationStage('business_impact');
+    
     try {
+      console.log('[DEBUG] Sending POST request to generate postmortem');
       const response = await fetch(`/api/incidents/${incident.id}/postmortem`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -143,131 +92,87 @@ export function PostmortemTab({ incident, onRefresh }: PostmortemTabProps) {
         }),
       });
 
+      console.log('[DEBUG] Response status:', response.status);
+      
       if (!response.ok) {
         const error = await response.json();
+        console.error('[ERROR] Generation failed:', error);
         throw new Error(error.error || 'Failed to generate postmortem');
       }
 
+      // Simulate progressive stages for better UX
+      setGenerationStage('mitigation');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setGenerationStage('causal_analysis');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setGenerationStage('action_items');
+      
       const data = await response.json();
+      console.log('[DEBUG] Generated postmortem data:', data);
       setPostmortem(data);
+      setHasPostmortem(true);
+      console.log('[DEBUG] State updated with generated data');
     } catch (error) {
-      console.error('Error generating postmortem:', error);
+      console.error('[ERROR] Error generating postmortem:', error);
       alert(error instanceof Error ? error.message : 'Failed to generate postmortem');
     } finally {
       setGenerating(false);
+      setGenerationStage(null);
+      console.log('[DEBUG] Generation completed');
     }
   };
 
-  const updateSection = async (field: string, value: any) => {
-    if (!postmortem) return;
+  const updateFieldImmediate = async (field: string, value: any) => {
+    if (!postmortem) {
+      console.warn('[WARN] Cannot update field - no postmortem exists');
+      return;
+    }
 
+    console.log('[DEBUG] updateField called:', { field, value });
+    
     setSaving(true);
     try {
+      console.log('[DEBUG] Sending PATCH request for field:', field);
       const response = await fetch(`/api/incidents/${incident.id}/postmortem`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: value }),
       });
 
-      if (!response.ok) throw new Error('Failed to update postmortem');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('[ERROR] Update failed:', errorData);
+        throw new Error(errorData.error || 'Failed to update postmortem');
+      }
       const data = await response.json();
+      console.log('[DEBUG] Update successful, received data:', data);
       setPostmortem(data);
     } catch (error) {
-      console.error('Error updating postmortem:', error);
+      console.error('[ERROR] Error updating postmortem:', error);
+      alert(error instanceof Error ? error.message : 'Failed to save changes');
     } finally {
       setSaving(false);
+      console.log('[DEBUG] updateField completed, saving set to false');
     }
   };
 
-  const checkPostmortem = async () => {
-    if (!postmortem) return;
+  // Debounced version for text inputs
+  const updateFieldDebounced = useDebounce(updateFieldImmediate, 1000);
 
-    // Add user message
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: 'Check the quality of this postmortem',
-      timestamp: new Date(),
-    };
-    setChatMessages(prev => [...prev, userMessage]);
-    setAiLoading(true);
-
-    try {
-      const response = await fetch(`/api/incidents/${incident.id}/postmortem/check`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'check',
-          postmortem,
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to check postmortem');
-      const data = await response.json();
-      
-      // Add AI response
-      const aiMessage: ChatMessage = {
-        role: 'assistant',
-        content: data.feedback,
-        timestamp: new Date(),
-      };
-      setChatMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-      console.error('Error checking postmortem:', error);
-      const errorMessage: ChatMessage = {
-        role: 'assistant',
-        content: 'Failed to analyze postmortem. Please try again.',
-        timestamp: new Date(),
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setAiLoading(false);
+  // Use immediate update for non-text fields, debounced for text fields
+  const updateField = (field: string, value: any, immediate: boolean = false) => {
+    // Update local state immediately for responsive UI
+    if (postmortem) {
+      setPostmortem({ ...postmortem, [field]: value });
     }
-  };
-
-  const sendMessage = async () => {
-    if (!currentMessage.trim() || !postmortem || aiLoading) return;
-
-    // Add user message
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: currentMessage,
-      timestamp: new Date(),
-    };
-    setChatMessages(prev => [...prev, userMessage]);
-    setCurrentMessage('');
-    setAiLoading(true);
-
-    try {
-      const response = await fetch(`/api/incidents/${incident.id}/postmortem/check`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'ask',
-          question: userMessage.content,
-          postmortem,
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to get AI response');
-      const data = await response.json();
-      
-      // Add AI response
-      const aiMessage: ChatMessage = {
-        role: 'assistant',
-        content: data.answer,
-        timestamp: new Date(),
-      };
-      setChatMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-      console.error('Error asking AI:', error);
-      const errorMessage: ChatMessage = {
-        role: 'assistant',
-        content: 'Failed to get AI response. Please try again.',
-        timestamp: new Date(),
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setAiLoading(false);
+    
+    // Use appropriate update method
+    if (immediate) {
+      updateFieldImmediate(field, value);
+    } else {
+      updateFieldDebounced(field, value);
     }
   };
 
@@ -275,8 +180,7 @@ export function PostmortemTab({ incident, onRefresh }: PostmortemTabProps) {
     if (!confirm('Publish this postmortem? It will be marked as final and shared with the team.')) {
       return;
     }
-
-    await updateSection('status', 'published');
+    await updateFieldImmediate('status', 'published');
   };
 
   if (loading) {
@@ -288,8 +192,8 @@ export function PostmortemTab({ incident, onRefresh }: PostmortemTabProps) {
     );
   }
 
-  // Show generate button if no postmortem exists and incident is resolved/closed
-  if (!postmortem) {
+  // Show empty state with generate button
+  if (!hasPostmortem || !postmortem) {
     const canGenerate = incident.status === 'resolved' || incident.status === 'closed';
 
     return (
@@ -302,10 +206,10 @@ export function PostmortemTab({ incident, onRefresh }: PostmortemTabProps) {
           {canGenerate ? (
             <>
               <p className="text-text-secondary mb-6">
-                Generate an AI-powered postmortem based on the incident timeline, actions taken, and impact analysis.
+                Create a postmortem to document the incident analysis using the Swiss cheese model.
               </p>
               <button
-                onClick={() => generatePostmortem(false)}
+                onClick={generatePostmortem}
                 disabled={generating}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-accent-purple text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -317,10 +221,34 @@ export function PostmortemTab({ incident, onRefresh }: PostmortemTabProps) {
                 ) : (
                   <>
                     <Sparkles className="w-5 h-5" />
-                    Generate Postmortem with AI
+                    Generate with AI
                   </>
                 )}
               </button>
+              
+              {/* Progressive Generation Indicator */}
+              {generating && generationStage && (
+                <div className="mt-6 space-y-3">
+                  {GENERATION_STAGES.map((stage) => (
+                    <div key={stage.key} className="flex items-center gap-3 justify-center">
+                      {generationStage === stage.key ? (
+                        <Loader2 className="w-4 h-4 text-accent-purple animate-spin" />
+                      ) : GENERATION_STAGES.findIndex(s => s.key === stage.key) < GENERATION_STAGES.findIndex(s => s.key === generationStage) ? (
+                        <CheckCircle className="w-4 h-4 text-status-success" />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                      )}
+                      <span className={`text-sm ${
+                        generationStage === stage.key ? 'text-accent-purple font-medium' :
+                        GENERATION_STAGES.findIndex(s => s.key === stage.key) < GENERATION_STAGES.findIndex(s => s.key === generationStage) ? 'text-status-success' :
+                        'text-text-secondary'
+                      }`}>
+                        {stage.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           ) : (
             <p className="text-text-secondary">
@@ -334,13 +262,75 @@ export function PostmortemTab({ incident, onRefresh }: PostmortemTabProps) {
     );
   }
 
-  // Get timeline events from incident
-  const timelineEvents: TimelineEvent[] = incident.timelineEvents || [];
-
   return (
     <div className="relative">
-      {/* Main Editor - Full Width */}
       <div className="space-y-6">
+        {/* Header with Generate Button */}
+        <div className="bg-white border border-border rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-text-primary">Postmortem Analysis</h2>
+              <p className="text-sm text-text-secondary mt-1">
+                Based on the Swiss cheese model and systemic causal analysis
+              </p>
+            </div>
+            <div className="flex gap-3 items-center">
+              {saving && (
+                <div className="text-xs text-text-secondary flex items-center gap-2">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Saving...
+                </div>
+              )}
+              <button
+                onClick={generatePostmortem}
+                disabled={generating}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-accent-purple text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Generate with AI
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+          
+          {/* Progressive Generation Indicator in Header */}
+          {generating && generationStage && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center gap-4">
+                {GENERATION_STAGES.map((stage, index) => (
+                  <div key={stage.key} className="flex items-center gap-2 flex-1">
+                    {generationStage === stage.key ? (
+                      <Loader2 className="w-4 h-4 text-accent-purple animate-spin flex-shrink-0" />
+                    ) : GENERATION_STAGES.findIndex(s => s.key === stage.key) < GENERATION_STAGES.findIndex(s => s.key === generationStage) ? (
+                      <CheckCircle className="w-4 h-4 text-status-success flex-shrink-0" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-300 flex-shrink-0" />
+                    )}
+                    <span className={`text-xs ${
+                      generationStage === stage.key ? 'text-accent-purple font-medium' :
+                      GENERATION_STAGES.findIndex(s => s.key === stage.key) < GENERATION_STAGES.findIndex(s => s.key === generationStage) ? 'text-status-success' :
+                      'text-text-secondary'
+                    }`}>
+                      {stage.label}
+                    </span>
+                    {index < GENERATION_STAGES.length - 1 && (
+                      <div className="flex-1 h-0.5 bg-gray-200 mx-2" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Status Banner */}
         {postmortem.status === 'published' && (
           <div className="bg-status-success/10 border border-status-success rounded-lg p-4 flex items-center gap-3">
@@ -354,144 +344,106 @@ export function PostmortemTab({ incident, onRefresh }: PostmortemTabProps) {
           </div>
         )}
 
-        {/* Horizontal Timeline */}
-        {timelineEvents.length > 0 && (
-          <div className="bg-white border border-border rounded-lg p-6">
-            <h3 className="text-sm font-semibold text-text-primary mb-4">
-              Incident Timeline
-            </h3>
-            <div className="relative">
-              {/* Timeline Line */}
-              <div className="absolute top-6 left-0 right-0 h-0.5 bg-border" />
-              
-              {/* Timeline Events */}
-              <div className="relative flex justify-between items-start gap-2 overflow-x-auto pb-2">
-                {timelineEvents.map((event, index) => {
-                  const config = eventTypeConfig[event.eventType as keyof typeof eventTypeConfig] || eventTypeConfig.update;
-                  const Icon = config.icon;
-                  
-                  return (
-                    <div key={event.id} className="flex flex-col items-center min-w-[120px] flex-shrink-0">
-                      {/* Icon */}
-                      <div className={`relative z-10 w-10 h-10 rounded-full ${config.bgColor} flex items-center justify-center border-2 border-white shadow-sm`}>
-                        <Icon className={`w-5 h-5 ${config.color}`} />
-                      </div>
-                      
-                      {/* Time */}
-                      <div className="mt-2 text-xs font-mono text-text-secondary whitespace-nowrap">
-                        {formatTimestamp(event.createdAt)}
-                      </div>
-                      
-                      {/* Label */}
-                      <div className="mt-1 text-xs font-medium text-text-primary text-center">
-                        {config.label}
-                      </div>
-                      
-                      {/* Description (truncated) */}
-                      <div className="mt-1 text-xs text-text-secondary text-center line-clamp-2 max-w-[120px]">
-                        {event.description.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+        {/* Business Impact Section */}
+        <SectionCard
+          title="Business Impact"
+          icon={AlertTriangle}
+          tooltip={FIELD_TOOLTIPS.businessImpact}
+        >
+          <div className="space-y-4">
+            <InputField
+              label="Application"
+              value={postmortem.businessImpactApplication || ''}
+              onChange={(value) => updateField('businessImpactApplication', value)}
+              placeholder="Which application was impacted?"
+            />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <DateTimeField
+                label="Start Time"
+                value={postmortem.businessImpactStart || ''}
+                onChange={(value) => updateField('businessImpactStart', value, true)}
+              />
+              <DateTimeField
+                label="End Time"
+                value={postmortem.businessImpactEnd || ''}
+                onChange={(value) => updateField('businessImpactEnd', value, true)}
+              />
             </div>
-          </div>
-        )}
 
-        {/* Auto-save indicator */}
-        {saving && (
-          <div className="text-xs text-text-secondary flex items-center gap-2">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            Saving...
-          </div>
-        )}
-
-        {/* Introduction */}
-        <Section
-          title="Introduction"
-          content={postmortem.introduction}
-          onSave={(value) => updateSection('introduction', value)}
-          isEditing={editingSection === 'introduction'}
-          onEdit={() => setEditingSection('introduction')}
-          onCancel={() => setEditingSection(null)}
-        />
-
-        {/* Timeline Summary */}
-        <Section
-          title="Timeline Summary"
-          content={postmortem.timelineSummary}
-          onSave={(value) => updateSection('timelineSummary', value)}
-          isEditing={editingSection === 'timelineSummary'}
-          onEdit={() => setEditingSection('timelineSummary')}
-          onCancel={() => setEditingSection(null)}
-        />
-
-        {/* Root Cause */}
-        <Section
-          title="Root Cause"
-          content={postmortem.rootCause}
-          onSave={(value) => updateSection('rootCause', value)}
-          isEditing={editingSection === 'rootCause'}
-          onEdit={() => setEditingSection('rootCause')}
-          onCancel={() => setEditingSection(null)}
-        />
-
-        {/* Impact Analysis */}
-        <Section
-          title="Impact Analysis"
-          content={postmortem.impactAnalysis}
-          onSave={(value) => updateSection('impactAnalysis', value)}
-          isEditing={editingSection === 'impactAnalysis'}
-          onEdit={() => setEditingSection('impactAnalysis')}
-          onCancel={() => setEditingSection(null)}
-        />
-
-        {/* How We Fixed It */}
-        <Section
-          title="How We Fixed It"
-          content={postmortem.howWeFixedIt}
-          onSave={(value) => updateSection('howWeFixedIt', value)}
-          isEditing={editingSection === 'howWeFixedIt'}
-          onEdit={() => setEditingSection('howWeFixedIt')}
-          onCancel={() => setEditingSection(null)}
-        />
-
-        {/* Action Items */}
-        <div className="bg-white border border-border rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">Action Items</h3>
-          <div className="space-y-3">
-            {(postmortem.actionItems || []).map((item, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 bg-background rounded border border-border">
-                <div className="flex-1">
-                  <p className="text-sm text-text-primary">{item.description}</p>
-                  <span className={`inline-block mt-1 px-2 py-0.5 text-xs rounded ${
-                    item.priority === 'high' ? 'bg-status-critical/10 text-status-critical' :
-                    item.priority === 'medium' ? 'bg-status-warning/10 text-status-warning' :
-                    'bg-status-info/10 text-status-info'
-                  }`}>
-                    {item.priority} priority
-                  </span>
+            {postmortem.businessImpactStart && postmortem.businessImpactEnd && (
+              <div className="bg-background p-3 rounded border border-border">
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="w-4 h-4 text-status-info" />
+                  <span className="font-medium">Duration:</span>
+                  <span>{calculateDuration(postmortem.businessImpactStart, postmortem.businessImpactEnd)}</span>
                 </div>
               </div>
-            ))}
-            {(!postmortem.actionItems || postmortem.actionItems.length === 0) && (
-              <p className="text-sm text-text-secondary italic">No action items yet</p>
             )}
+
+            <TextAreaField
+              label="Description"
+              value={postmortem.businessImpactDescription || ''}
+              onChange={(value) => updateField('businessImpactDescription', value)}
+              placeholder="Describe the business impact in detail..."
+              rows={4}
+            />
+
+            <MultiSelectField
+              label="Affected Countries"
+              value={postmortem.businessImpactAffectedCountries || []}
+              onChange={(value) => updateField('businessImpactAffectedCountries', value, true)}
+              placeholder="Add countries..."
+            />
+
+            <div className="space-y-3">
+              <CheckboxField
+                label="Regulatory Reporting Required"
+                checked={postmortem.businessImpactRegulatoryReporting || false}
+                onChange={(value) => updateField('businessImpactRegulatoryReporting', value, true)}
+              />
+
+              {postmortem.businessImpactRegulatoryReporting && (
+                <InputField
+                  label="Regulatory Entity"
+                  value={postmortem.businessImpactRegulatoryEntity || ''}
+                  onChange={(value) => updateField('businessImpactRegulatoryEntity', value)}
+                  placeholder="e.g., DORA, ECB, etc."
+                />
+              )}
+            </div>
           </div>
-        </div>
+        </SectionCard>
 
-        {/* Lessons Learned */}
-        <Section
-          title="Lessons Learned"
-          content={postmortem.lessonsLearned}
-          onSave={(value) => updateSection('lessonsLearned', value)}
-          isEditing={editingSection === 'lessonsLearned'}
-          onEdit={() => setEditingSection('lessonsLearned')}
-          onCancel={() => setEditingSection(null)}
-        />
+        {/* Mitigation Section */}
+        <SectionCard
+          title="Mitigation"
+          icon={Shield}
+          tooltip={FIELD_TOOLTIPS.mitigation}
+        >
+          <TextAreaField
+            label="Mitigation Actions"
+            value={postmortem.mitigationDescription || ''}
+            onChange={(value) => updateField('mitigationDescription', value)}
+            placeholder="Describe all actions, resilience patterns, or decisions taken to mitigate the incident..."
+            rows={6}
+          />
+        </SectionCard>
 
-        {/* Actions */}
+        {/* Swiss Cheese Model - Causal Analysis with Action Items */}
+        <SectionCard
+          title="Systemic Causal Analysis (Swiss Cheese Model)"
+          icon={FileText}
+          tooltip={FIELD_TOOLTIPS.causalAnalysis}
+        >
+          <CausalAnalysisEditor
+            items={postmortem.causalAnalysis || []}
+            onChange={(value) => updateField('causalAnalysis', value, true)}
+            users={users}
+          />
+        </SectionCard>
+
+        {/* Publish Button */}
         {postmortem.status !== 'published' && (
           <div className="flex gap-3">
             <button
@@ -504,201 +456,8 @@ export function PostmortemTab({ incident, onRefresh }: PostmortemTabProps) {
         )}
       </div>
 
-      {/* Floating AI Assistant Button */}
-      {!showChatbot && (
-        <button
-          onClick={() => setShowChatbot(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-accent-purple text-white rounded-full shadow-lg hover:bg-purple-700 transition-all hover:scale-110 flex items-center justify-center z-40"
-          aria-label="Open AI Assistant"
-        >
-          <Bot className="w-6 h-6" />
-        </button>
-      )}
-
-      {/* Chatbot Popup */}
-      {showChatbot && (
-        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white border border-border rounded-lg shadow-2xl flex flex-col z-50">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border bg-accent-purple text-white rounded-t-lg">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5" />
-              <h3 className="font-semibold">AI Assistant</h3>
-            </div>
-            <button
-              onClick={() => setShowChatbot(false)}
-              className="hover:bg-purple-700 rounded p-1 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Quick Action */}
-          <div className="p-3 border-b border-border bg-background">
-            <button
-              onClick={checkPostmortem}
-              disabled={aiLoading}
-              className="w-full px-3 py-2 bg-accent-purple text-white rounded-lg hover:bg-purple-700 transition-colors text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {aiLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Checking...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4" />
-                  Check Postmortem Quality
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Chat Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {chatMessages.length === 0 ? (
-              <div className="text-center text-text-secondary text-sm py-8">
-                <Bot className="w-12 h-12 mx-auto mb-3 text-accent-purple opacity-50" />
-                <p className="mb-2">Hi! I'm your AI assistant.</p>
-                <p>Ask me anything about this postmortem or click the button above to check its quality.</p>
-              </div>
-            ) : (
-              chatMessages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  {message.role === 'assistant' && (
-                    <div className="w-8 h-8 rounded-full bg-accent-purple/10 flex items-center justify-center flex-shrink-0">
-                      <Bot className="w-5 h-5 text-accent-purple" />
-                    </div>
-                  )}
-                  <div
-                    className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                      message.role === 'user'
-                        ? 'bg-accent-purple text-white'
-                        : 'bg-background text-text-primary border border-border'
-                    }`}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    <p className={`text-xs mt-1 ${message.role === 'user' ? 'text-purple-200' : 'text-text-secondary'}`}>
-                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                  {message.role === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-status-info/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-medium text-status-info">You</span>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-            {aiLoading && (
-              <div className="flex gap-3 justify-start">
-                <div className="w-8 h-8 rounded-full bg-accent-purple/10 flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-5 h-5 text-accent-purple" />
-                </div>
-                <div className="bg-background text-text-primary border border-border rounded-lg px-4 py-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-accent-purple" />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Input Area */}
-          <div className="p-4 border-t border-border">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={currentMessage}
-                onChange={(e) => setCurrentMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
-                placeholder="Ask about the postmortem..."
-                className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
-                disabled={aiLoading}
-              />
-              <button
-                onClick={sendMessage}
-                disabled={!currentMessage.trim() || aiLoading}
-                className="px-4 py-2 bg-accent-purple text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-type SectionProps = {
-  title: string;
-  content: string;
-  onSave: (value: string) => void;
-  isEditing: boolean;
-  onEdit: () => void;
-  onCancel: () => void;
-};
-
-function Section({ title, content, onSave, isEditing, onEdit, onCancel }: SectionProps) {
-  const [editValue, setEditValue] = useState(content);
-
-  useEffect(() => {
-    setEditValue(content);
-  }, [content]);
-
-  const handleSave = () => {
-    onSave(editValue);
-    onCancel();
-  };
-
-  return (
-    <div className="bg-white border border-border rounded-lg p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-text-primary">{title}</h3>
-        {!isEditing && (
-          <button
-            onClick={onEdit}
-            className="text-sm text-status-info hover:text-blue-600 transition-colors"
-          >
-            Edit
-          </button>
-        )}
-      </div>
-
-      {isEditing ? (
-        <div className="space-y-3">
-          <textarea
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-status-info min-h-[150px]"
-            rows={8}
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 bg-status-info text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
-            >
-              Save
-            </button>
-            <button
-              onClick={onCancel}
-              className="px-4 py-2 border border-border text-text-secondary rounded-lg hover:bg-background transition-colors text-sm"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="text-sm text-text-primary whitespace-pre-wrap">
-          {content || <span className="text-text-secondary italic">No content yet</span>}
-        </div>
-      )}
+      {/* AI Chatbot */}
+      <AIChatbot postmortem={postmortem} incidentId={incident.id} />
     </div>
   );
 }
