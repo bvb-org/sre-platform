@@ -40,27 +40,46 @@ services:
       LIQUIBASE_COMMAND_USERNAME: sre_user
       LIQUIBASE_COMMAND_PASSWORD: sre_password
 
-  # Next.js Frontend & API
-  frontend:
+  # Backend API (Express)
+  backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
-    container_name: sre-platform-frontend
+    container_name: sre-platform-backend
     depends_on:
       postgres:
         condition: service_healthy
       liquibase:
         condition: service_completed_successfully
     ports:
-      - "3000:3000"
+      - "3001:3001"
     environment:
       DATABASE_URL: postgresql://sre_user:sre_password@postgres:5432/sre_platform
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      NODE_ENV: development
+      PORT: 3001
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sre-platform-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:3001
       NODE_ENV: development
     volumes:
       - .:/app
       - /app/node_modules
       - /app/.next
+      - /app/backend
     command: npm run dev
 
   # WebSocket Server (Socket.io)

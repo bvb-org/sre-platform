@@ -12,12 +12,15 @@ An incident.io and rootly.ai-inspired platform for incident management, AI-power
 
 ## Architecture
 
-- **Frontend:** Next.js 14+ with TypeScript and Tailwind CSS
-- **Database:** PostgreSQL (Alpine-based)
+The platform uses a **microservices architecture** with separate frontend and backend containers:
+
+- **Frontend:** Next.js 14+ with TypeScript and Tailwind CSS (port 3000)
+- **Backend API:** Express.js REST API (port 3001)
+- **Database:** PostgreSQL (Alpine-based, port 5432)
 - **Migrations:** Liquibase for version-controlled schema management
-- **Real-time:** Socket.io WebSocket server
-- **Storage:** MinIO (S3-compatible, optional)
-- **AI:** OpenAI GPT-4 for postmortem generation and analysis
+- **Real-time:** Socket.io WebSocket server (port 4000)
+- **Storage:** MinIO (S3-compatible, optional, ports 9000/9001)
+- **AI:** Anthropic Claude for postmortem generation and analysis
 
 ## Quick Start
 
@@ -49,19 +52,27 @@ An incident.io and rootly.ai-inspired platform for incident management, AI-power
    This will start:
    - PostgreSQL database (port 5432)
    - Liquibase migrations (runs once)
+   - Backend API (port 3001)
    - Next.js frontend (port 3000)
    - WebSocket server (port 4000)
    - MinIO storage (ports 9000, 9001)
 
 4. **Access the application**
    - Frontend: http://localhost:3000
+   - Backend API: http://localhost:3001
    - MinIO Console: http://localhost:9001
 
 ### Local Development (without Docker)
 
 1. **Install dependencies**
    ```bash
+   # Frontend dependencies
    npm install
+   
+   # Backend dependencies
+   cd backend && npm install && cd ..
+   
+   # WebSocket dependencies
    cd websocket && npm install && cd ..
    ```
 
@@ -75,17 +86,15 @@ An incident.io and rootly.ai-inspired platform for incident management, AI-power
    docker-compose up liquibase
    ```
 
-4. **Generate Prisma client**
+4. **Start development servers**
    ```bash
-   npx prisma generate
-   ```
+   # Terminal 1: Backend API
+   cd backend && npm run dev
 
-5. **Start development servers**
-   ```bash
-   # Terminal 1: Frontend
+   # Terminal 2: Frontend
    npm run dev
 
-   # Terminal 2: WebSocket server
+   # Terminal 3: WebSocket server
    cd websocket && npm start
    ```
 
@@ -93,14 +102,23 @@ An incident.io and rootly.ai-inspired platform for incident management, AI-power
 
 ```
 sre-platform/
-├── app/                    # Next.js app directory
+├── app/                    # Next.js app directory (Frontend UI)
 │   ├── page.tsx           # Homepage
 │   ├── incidents/         # Incident pages
 │   ├── runbooks/          # Runbook pages
+│   ├── components/        # React components
 │   └── globals.css        # Global styles
-├── components/            # React components
-├── lib/                   # Utility functions
-├── prisma/               # Prisma schema
+├── backend/               # Express.js backend API
+│   ├── routes/            # API route handlers
+│   │   ├── incidents.js   # Incident endpoints
+│   │   ├── runbooks.js    # Runbook endpoints
+│   │   ├── users.js       # User endpoints
+│   │   └── postmortem.js  # Postmortem endpoints
+│   ├── server.js          # Express server
+│   ├── package.json       # Backend dependencies
+│   ├── Dockerfile         # Backend container
+│   └── README.md          # Backend documentation
+├── lib/                   # Shared utility functions
 ├── liquibase/            # Database migrations
 │   ├── db.changelog-master.xml
 │   └── changesets/
