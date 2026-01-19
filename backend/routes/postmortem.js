@@ -68,10 +68,15 @@ router.get('/', async (req, res) => {
 
 // POST /api/incidents/:id/postmortem - Generate or update postmortem
 router.post('/', async (req, res) => {
+  const startTime = Date.now();
+  console.log('[DEBUG] POST /postmortem - Request received at', new Date().toISOString());
+  console.log('[DEBUG] Request body:', JSON.stringify(req.body));
+  
   try {
     const { action, userId } = req.body;
 
     if (action === 'generate') {
+      console.log('[DEBUG] Starting postmortem generation for incident:', req.params.id);
       // Fetch incident data with all related information
       const incidentResult = await pool.query(
         `SELECT
@@ -256,13 +261,25 @@ router.post('/', async (req, res) => {
         updatedAt: row.updated_at,
       };
 
+      const duration = Date.now() - startTime;
+      console.log('[DEBUG] Postmortem generation completed successfully in', duration, 'ms');
+      console.log('[DEBUG] Sending response with postmortem data');
       return res.json(postmortem);
     }
 
     res.status(400).json({ error: 'Invalid action' });
   } catch (error) {
-    console.error('Error generating postmortem:', error);
-    res.status(500).json({ error: 'Failed to generate postmortem' });
+    const duration = Date.now() - startTime;
+    console.error('[ERROR] Postmortem generation failed after', duration, 'ms');
+    console.error('[ERROR] Error details:', error);
+    console.error('[ERROR] Error stack:', error.stack);
+    
+    // Ensure we always send JSON response
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to generate postmortem', details: error.message });
+    } else {
+      console.error('[ERROR] Headers already sent, cannot send error response');
+    }
   }
 });
 
