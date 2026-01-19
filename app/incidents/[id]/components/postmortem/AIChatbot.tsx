@@ -79,7 +79,7 @@ export function AIChatbot({
       {showChatbot && (
         <div
           className={`fixed bottom-6 right-6 bg-white border border-border rounded-lg shadow-2xl flex flex-col z-50 transition-all duration-300 ${
-            isExpanded ? 'w-[800px] h-[80vh]' : 'w-[600px] h-[700px]'
+            isExpanded ? 'w-[800px] h-[80vh]' : 'w-[450px] h-[550px]'
           }`}
         >
           <div className="flex items-center justify-between p-4 border-b border-border bg-accent-purple text-white rounded-t-lg">
