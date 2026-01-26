@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
+    "@google-cloud/vertexai": "^1.10.0",
     "@headlessui/react": "^2.0.0",
     "@hookform/resolvers": "^3.3.0",
     "clsx": "^2.1.1",

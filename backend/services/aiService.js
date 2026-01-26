@@ -1,5 +1,6 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { VertexAI } = require('@google-cloud/vertexai');
 const { GoogleAuth } = require('google-auth-library');
 const fs = require('fs');
 const path = require('path');
@@ -39,8 +40,15 @@ class AIService {
     }
 
     // Check for Google service account JSON file in project root
-    const serviceAccountPath = path.join(__dirname, '../../google-service-account-key.json');
-    if (fs.existsSync(serviceAccountPath)) {
+    // In Docker: /app/google-service-account-key.json
+    // In local dev: ../../google-service-account-key.json (from backend/services/)
+    const serviceAccountPaths = [
+      path.join(__dirname, '../../google-service-account-key.json'), // Local dev
+      '/app/google-service-account-key.json' // Docker container
+    ];
+    
+    const serviceAccountPath = serviceAccountPaths.find(p => fs.existsSync(p));
+    if (serviceAccountPath) {
       console.log('[AI Service] Initializing with Google Gemini (Service Account File)');
       this.provider = 'google';
       this.model = 'gemini-2.0-flash-exp'; // Latest Gemini model
@@ -78,19 +86,10 @@ class AIService {
         client_email: serviceAccountKey.client_email
       });
 
-      // For Google Generative AI with service account, we need to use GoogleAuth
-      // to get access tokens for API calls
-      const auth = new GoogleAuth({
-        credentials: serviceAccountKey,
-        scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-      });
-
-      // Store auth for use in API calls
-      this.auth = auth;
       this.serviceAccountKey = serviceAccountKey;
       
-      // Initialize Google Generative AI client with auth
-      await this.initializeGoogleClientWithAuth();
+      // Initialize Vertex AI client with service account
+      await this.initializeVertexAI(serviceAccountKey, filePath);
     } catch (error) {
       console.error('[AI Service] Failed to initialize Google client from file:', error);
       throw new Error(`Invalid google-service-account-key.json file: ${error.message}`);
@@ -107,40 +106,39 @@ class AIService {
         client_email: serviceAccountKey.client_email
       });
 
-      // For Google Generative AI with service account, we need to use GoogleAuth
-      const auth = new GoogleAuth({
-        credentials: serviceAccountKey,
-        scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-      });
-
-      // Store auth for use in API calls
-      this.auth = auth;
       this.serviceAccountKey = serviceAccountKey;
       
-      // Initialize Google Generative AI client with auth
-      await this.initializeGoogleClientWithAuth();
+      // Initialize Vertex AI client with service account
+      await this.initializeVertexAI(serviceAccountKey);
     } catch (error) {
       console.error('[AI Service] Failed to initialize Google client from ENV:', error);
       throw new Error('Invalid GOOGLE_SERVICE_ACCOUNT_KEY format. Must be valid JSON.');
     }
   }
 
-  async initializeGoogleClientWithAuth() {
+  async initializeVertexAI(serviceAccountKey, keyFilePath = null) {
     try {
-      // Get an access token from the service account
-      const client = await this.auth.getClient();
-      const accessToken = await client.getAccessToken();
-      
-      if (!accessToken.token) {
-        throw new Error('Failed to get access token from service account');
+      // Set environment variable for Google Application Credentials if key file path is provided
+      if (keyFilePath) {
+        process.env.GOOGLE_APPLICATION_CREDENTIALS = keyFilePath;
       }
 
-      // Initialize Google Generative AI with the access token
-      this.client = new GoogleGenerativeAI(accessToken.token);
-      console.log('[AI Service] Successfully authenticated with Google Cloud');
+      // Initialize Vertex AI with project and location
+      const projectId = serviceAccountKey.project_id;
+      const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1'; // Default to us-central1
+      
+      this.client = new VertexAI({
+        project: projectId,
+        location: location,
+      });
+      
+      console.log('[AI Service] Successfully initialized Vertex AI:', {
+        project: projectId,
+        location: location
+      });
     } catch (error) {
-      console.error('[AI Service] Failed to authenticate with Google Cloud:', error);
-      throw new Error(`Google Cloud authentication failed: ${error.message}`);
+      console.error('[AI Service] Failed to initialize Vertex AI:', error);
+      throw new Error(`Vertex AI initialization failed: ${error.message}`);
     }
   }
 
@@ -186,7 +184,7 @@ class AIService {
   }
 
   async generateGoogleCompletion(prompt, maxTokens) {
-    const model = this.client.getGenerativeModel({ 
+    const generativeModel = this.client.getGenerativeModel({
       model: this.model,
       generationConfig: {
         maxOutputTokens: maxTokens,
@@ -194,9 +192,9 @@ class AIService {
       },
     });
 
-    const result = await model.generateContent(prompt);
+    const result = await generativeModel.generateContent(prompt);
     const response = result.response;
-    const text = response.text();
+    const text = response.candidates[0].content.parts[0].text;
 
     return {
       text,
