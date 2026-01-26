@@ -883,6 +883,363 @@ Emergency hotfix v2.8.1 was developed and deployed using canary deployment strat
 
     console.log('Created Incident 3 with timeline and action items');
 
+    // ============================================================================
+    // INCIDENT 4: Redis Cache Cluster Failure - Memory Exhaustion
+    // ============================================================================
+    console.log('Creating Incident 4: Redis Cache Cluster Failure...');
+    
+    const incident4Result = await pool.query(
+      `INSERT INTO incidents (
+        incident_number, title, description, severity, status,
+        incident_lead_id, reporter_id, created_at, detected_at,
+        mitigated_at, resolved_at, closed_at, problem_statement, impact, causes, steps_to_resolve
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      ON CONFLICT (incident_number) DO UPDATE SET
+        title = $2, description = $3, severity = $4, status = $5
+      RETURNING *`,
+      [
+        'INC-2025-002',
+        'Redis Cache Cluster Failure - Memory Exhaustion from Runaway Cache Keys',
+        'Critical outage of Redis cache cluster serving user sessions and API rate limiting. Memory exhaustion caused by runaway cache key generation bug in Search API that created millions of uncapped cache entries. Resulted in Redis cluster failure, forcing fallback to database causing 10x increase in database load and severe performance degradation across all services.',
+        'critical',
+        'resolved',
+        userIds['henry.moore@company.com'],
+        userIds['iris.taylor@company.com'],
+        '2025-01-15T03:12:00Z',
+        '2025-01-15T03:12:00Z',
+        '2025-01-15T04:45:00Z',
+        '2025-01-15T06:20:00Z',
+        '2025-01-15T08:00:00Z',
+        `At 03:12 UTC on January 15, 2025, our Redis cache cluster (ElastiCache) experienced complete memory exhaustion and subsequent failure. The root cause was a bug in the Search API v3.2.1 release deployed 8 hours earlier that generated cache keys without proper TTL or cardinality limits.
+
+**What Happened:**
+The Search API began creating cache keys for every unique search query combination including timestamps, user IDs, and pagination parameters. Instead of creating bounded cache keys (e.g., "search:term:electronics"), it created unbounded keys like "search:electronics:user-12345:page-1:timestamp-1705286400:sort-price-asc:...".
+
+Within 8 hours, the bug generated:
+- 47 million unique cache keys (normal: ~500K)
+- Memory usage grew from 40% to 100%
+- Redis cluster entered OOM (Out of Memory) state
+- Cache eviction couldn't keep up (maxmemory-policy: allkeys-lru)
+- Redis started rejecting writes and eventually crashed
+- All 6 Redis nodes in the cluster became unavailable
+
+**Cascading Impact:**
+When Redis failed, applications fell back to database for:
+- User session storage (normally 100% cached)
+- API rate limiting counters (normally 100% cached)  
+- Search results (normally 95% cache hit rate)
+- Product catalog data (normally 80% cached)
+
+This caused:
+- Database CPU jumped from 45% to 98%
+- Query latency increased from 5ms to 800ms average
+- Connection pool exhaustion on database
+- Auto-scaling triggered but couldn't provision fast enough
+- Cascading slowdowns across all services
+- Timeouts and 503 errors across the platform`,
+        `**Customer Impact:**
+- 3 hours 8 minutes of severe performance degradation
+- 52% of API requests experienced high latency (>3s response time)
+- 18% of API requests failed with timeout or 503 errors
+- User login sessions randomly invalidated requiring re-authentication
+- Search functionality degraded with 5-10 second response times
+- API rate limiting inconsistent, some users hitting false rate limits
+- Mobile app experienced frequent "Something went wrong" errors
+- Estimated 12,000 customers impacted
+- 847 customer support tickets created during incident
+
+**Business Impact:**
+- Estimated revenue loss: $178,000
+- Payment completion rate dropped 23%
+- Cart abandonment rate increased 34%
+- Customer satisfaction score dropped significantly
+- Multiple enterprise customers complained about service reliability
+- Social media complaints about "broken search"
+
+**Technical Impact:**
+- Redis cluster completely unavailable for 1h 33min
+- Database load increased 10x causing performance degradation
+- Database connection pool exhausted on 23 application instances
+- Cache hit rate dropped from 85% to 0%
+- All services affected by slow database queries
+- Search API generated 47M invalid cache keys consuming 89GB memory
+- Emergency Redis cluster rebuild required
+- 5 teams involved in incident response
+
+**Affected Services:**
+- User Auth API (session storage failures, 45% degradation)
+- Payment API (rate limiting issues, 28% degradation)
+- Search API (complete cache miss, 90% degradation)
+- Order Processing API (slow product lookups, 35% degradation)
+- Analytics API (slow query performance, 25% degradation)
+- All services using database fallback`,
+        `**Root Cause:**
+A code change in Search API v3.2.1 modified the cache key generation logic to include additional parameters for improved cache granularity. However, the implementation had critical flaws:
+
+1. **No TTL Set:** Cache keys were created without expiration times (should be 1-24 hours)
+2. **Unbounded Cardinality:** Cache keys included high-cardinality values (timestamps, user IDs)
+3. **No Cache Key Limits:** No circuit breaker on cache key creation rate
+4. **Missing Code Review:** Change bypassed senior engineer review
+5. **Insufficient Testing:** Load testing didn't simulate realistic search patterns
+6. **No Cache Monitoring:** Cache key count and cardinality not monitored
+
+**Why It Wasn't Caught:**
+- Code review was skipped due to "minor bug fix" classification
+- Staging environment has much smaller Redis instances (didn't hit limits)
+- Load tests ran for only 10 minutes (not enough to see memory growth)
+- No alerts configured for cache key count or memory growth rate
+- Redis monitoring focused on hit rate and latency, not key count`,
+        `**Resolution Steps:**
+1. Identified Redis cluster failure and database overload (3:12 UTC)
+2. Analyzed Redis memory dump and discovered 47M keys (3:25 UTC)
+3. Traced cache keys back to Search API deployment (3:40 UTC)
+4. Emergency rollback of Search API to v3.2.0 (3:55 UTC)
+5. Stopped new cache key generation, but Redis still unavailable (4:00 UTC)
+6. Decision made to rebuild Redis cluster with clean state (4:15 UTC)
+7. Launched new Redis cluster and migrated traffic (4:30 UTC)
+8. Database load began decreasing as cache rebuilt (4:45 UTC - MITIGATED)
+9. Cache hit rate recovered to 80% (5:30 UTC)
+10. All services returned to normal performance (6:20 UTC - RESOLVED)
+11. Post-mortem analysis and action items created (8:00 UTC - CLOSED)`
+      ]
+    );
+    
+    const incident4Id = incident4Result.rows[0].id;
+    console.log('Created Incident 4:', incident4Result.rows[0].incident_number);
+
+    // Timeline events for Incident 4
+    const incident4Timeline = [
+      { type: 'detected', desc: 'Redis cluster memory at 100%, nodes becoming unresponsive. Database CPU spiking to 98%.', user: 'iris.taylor@company.com', time: '2025-01-15T03:12:00Z' },
+      { type: 'investigation', desc: 'War room established. Redis showing 47M keys (normal: 500K). Identified memory exhaustion.', user: 'henry.moore@company.com', time: '2025-01-15T03:25:00Z' },
+      { type: 'investigation', desc: 'Analyzed cache key patterns. All malformed keys originated from Search API v3.2.1 deployed at 19:00 yesterday.', user: 'jack.anderson@company.com', time: '2025-01-15T03:40:00Z' },
+      { type: 'action', desc: 'Emergency rollback of Search API from v3.2.1 to v3.2.0 to stop generating bad cache keys.', user: 'henry.moore@company.com', time: '2025-01-15T03:55:00Z' },
+      { type: 'action', desc: 'Redis still failing. Too many keys to evict. Decision: rebuild Redis cluster from scratch.', user: 'henry.moore@company.com', time: '2025-01-15T04:15:00Z' },
+      { type: 'action', desc: 'Launched new Redis cluster. Migrating traffic gradually while cache warms up.', user: 'jack.anderson@company.com', time: '2025-01-15T04:30:00Z' },
+      { type: 'mitigated', desc: 'New Redis cluster operational. Database load dropping as cache hit rate improves. Services stabilizing.', user: 'henry.moore@company.com', time: '2025-01-15T04:45:00Z' },
+      { type: 'action', desc: 'Cache hit rate at 80% and climbing. Service latency back to acceptable levels.', user: 'jack.anderson@company.com', time: '2025-01-15T05:30:00Z' },
+      { type: 'resolved', desc: 'All services at normal performance. Cache hit rate at 85%. Database load at 50%. Incident resolved.', user: 'henry.moore@company.com', time: '2025-01-15T06:20:00Z' },
+    ];
+
+    for (const event of incident4Timeline) {
+      await pool.query(
+        `INSERT INTO timeline_events (incident_id, event_type, description, user_id, created_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [incident4Id, event.type, event.desc, userIds[event.user], event.time]
+      );
+    }
+
+    // Action items for Incident 4
+    const incident4Actions = [
+      { desc: 'Add cache key count and cardinality monitoring with alerts', user: 'jack.anderson@company.com', completed: true },
+      { desc: 'Implement mandatory TTL for all cache keys (enforce at framework level)', user: 'henry.moore@company.com', completed: true },
+      { desc: 'Add cache key naming convention validation in CI/CD pipeline', user: 'jack.anderson@company.com', completed: false },
+      { desc: 'Require senior engineer approval for cache-related code changes', user: 'alice.johnson@company.com', completed: true },
+      { desc: 'Extend load testing to 24 hours for services using Redis', user: 'bob.smith@company.com', completed: false },
+      { desc: 'Implement cache circuit breaker to prevent runaway key generation', user: 'henry.moore@company.com', completed: false },
+      { desc: 'Add Redis memory growth rate alerts (>10% per hour)', user: 'iris.taylor@company.com', completed: true },
+    ];
+
+    for (const action of incident4Actions) {
+      await pool.query(
+        `INSERT INTO action_items (incident_id, description, assigned_to_id, completed)
+         VALUES ($1, $2, $3, $4)`,
+        [incident4Id, action.desc, userIds[action.user], action.completed]
+      );
+    }
+
+    // Link services to Incident 4
+    const incident4Services = ['Search API', 'User Auth API', 'Payment API', 'Order Processing API', 'Analytics API'];
+    for (const serviceName of incident4Services) {
+      await pool.query(
+        `INSERT INTO incident_services (incident_id, runbook_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [incident4Id, runbookIds[serviceName]]
+      );
+    }
+
+    console.log('Created Incident 4 with timeline and action items');
+
+    // ============================================================================
+    // INCIDENT 5: Elasticsearch Cluster Split-Brain - Network Partition
+    // ============================================================================
+    console.log('Creating Incident 5: Elasticsearch Split-Brain...');
+    
+    const incident5Result = await pool.query(
+      `INSERT INTO incidents (
+        incident_number, title, description, severity, status,
+        incident_lead_id, reporter_id, created_at, detected_at,
+        mitigated_at, resolved_at, closed_at, problem_statement, impact, causes, steps_to_resolve
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      ON CONFLICT (incident_number) DO UPDATE SET
+        title = $2, description = $3, severity = $4, status = $5
+      RETURNING *`,
+      [
+        'INC-2025-003',
+        'Elasticsearch Split-Brain Incident - Search and Recommendation Services Down',
+        'Major outage of search and recommendation services caused by Elasticsearch cluster split-brain condition following network partition between availability zones. Two competing master nodes caused index corruption, inconsistent search results, and eventually complete search service failure. Required full cluster rebuild and reindexing of 450GB product catalog.',
+        'high',
+        'resolved',
+        userIds['emma.davis@company.com'],
+        userIds['jack.anderson@company.com'],
+        '2025-01-20T11:28:00Z',
+        '2025-01-20T11:28:00Z',
+        '2025-01-20T14:50:00Z',
+        '2025-01-20T18:35:00Z',
+        '2025-01-20T21:00:00Z',
+        `At 11:28 UTC on January 20, 2025, our Elasticsearch cluster experienced a split-brain condition caused by a network partition between AWS availability zones us-east-1a and us-east-1b. This resulted in two competing master nodes making conflicting cluster state decisions, leading to index corruption and complete search service failure.
+
+**What Happened:**
+Our Elasticsearch cluster consists of 9 nodes (3 master-eligible, 6 data nodes) distributed across 3 availability zones. A network connectivity issue between AZs caused the cluster to partition into two groups:
+- Group A (AZ-1a): 2 master nodes + 3 data nodes
+- Group B (AZ-1b + AZ-1c): 1 master node + 3 data nodes
+
+Both groups elected a master node and began accepting writes independently, causing:
+
+1. **Index Divergence:** Product catalog updates went to different masters
+2. **Shard Allocation Conflicts:** Shards were reallocated differently in each partition
+3. **Data Inconsistency:** Search results varied depending on which partition was queried
+4. **Replication Failures:** Cross-AZ replication broke down
+5. **Cluster State Corruption:** When network recovered, conflicting cluster states couldn't merge
+
+**Timeline of Failure:**
+- 11:28 - Network partition occurs between AZs
+- 11:29 - Both groups elect masters, split-brain condition begins
+- 11:35 - Search API starts returning inconsistent results
+- 11:42 - Recommendation Engine fails due to missing indices
+- 12:10 - Cluster state becomes corrupted when partition heals
+- 12:15 - Elasticsearch enters red state, indices unavailable
+- 12:30 - Search API returns 503 errors, complete service failure`,
+        `**Customer Impact:**
+- 4 hours 22 minutes of search service outage (CRITICAL feature)
+- 7 hours 7 minutes until full restoration including recommendations
+- 100% of search requests failed (0 products found)
+- 100% of product recommendation requests failed
+- Category browsing degraded (no sorting or filtering)
+- "Products you might like" sections empty across site
+- Estimated 28,000 customers unable to search for products
+- 1,234 customers contacted support about broken search
+- Mobile app search completely non-functional
+
+**Business Impact:**
+- Estimated revenue loss: $425,000 (search drives 65% of purchases)
+- Conversion rate dropped 78% during outage
+- Average order value decreased 45% (users couldn't find products)
+- SEO impact: Google recrawled site during outage
+- Competitive disadvantage during key shopping period
+- Customer frustration evident in social media mentions
+
+**Technical Impact:**
+- Elasticsearch cluster in red state for 3.5 hours
+- 47 indices corrupted with conflicting shard allocations
+- 450GB of product catalog data requiring reindexing
+- Search API completely down (100% failure rate)
+- Recommendation Engine offline for 7+ hours
+- Product catalog indexing pipeline backed up
+- Real-time inventory updates not reflected in search
+- 12 hours of search relevance tuning lost
+- Monitoring system partially affected (uses Elasticsearch)
+
+**Affected Services:**
+- Search API (100% failure - CRITICAL)
+- Recommendation Engine (100% failure - CRITICAL)
+- Analytics API (partial - uses Elasticsearch for queries, 40% degradation)
+- Product Catalog API (degraded - search fallback unavailable)`,
+        `**Root Cause:**
+Network partition between AWS availability zones caused Elasticsearch split-brain condition. The cluster's minimum_master_nodes setting was incorrectly configured at 2 instead of 3 (quorum for 3 master-eligible nodes should be 2, but requires proper quorum configuration for split-brain prevention).
+
+**Technical Details:**
+1. **Incorrect Quorum Configuration:** minimum_master_nodes set to 2 (should be (N/2)+1 = 2 for 3 masters, but our deployment actually allowed split-brain)
+2. **Network Partition:** Transient network issue between AZs lasted 15 minutes
+3. **Multiple Masters Elected:** Both partitions had quorum (2 and 1 nodes incorrectly both elected)
+4. **Conflicting Operations:** Both masters accepted writes and shard reallocations
+5. **Merge Conflict:** When network healed, cluster states couldn't reconcile
+6. **Cascading Failure:** Cluster entered red state, indices became unavailable
+
+**Why It Wasn't Prevented:**
+- Elasticsearch 6.x version (older, pre-7.x auto-quorum improvements)
+- Configuration not validated against best practices
+- Chaos engineering tests didn't include AZ network partitions
+- No automated split-brain detection and prevention
+- Insufficient monitoring of master node elections
+- Lack of circuit breakers in Search API during Elasticsearch failures`,
+        `**Resolution Steps:**
+1. Detected split-brain via monitoring alerts for multiple master nodes (11:28 UTC)
+2. Identified network partition between AZs and cluster state divergence (11:45 UTC)
+3. Attempted automatic cluster recovery - failed due to state conflicts (12:00 UTC)
+4. Decision made to rebuild cluster from latest snapshot (12:30 UTC)
+5. Stopped all Search API traffic to prevent further corruption (12:45 UTC)
+6. Shut down Elasticsearch cluster completely (13:00 UTC)
+7. Deployed new 9-node cluster with corrected quorum settings (13:30 UTC)
+8. Restored indices from hourly snapshot taken at 11:00 UTC (14:00 UTC)
+9. Reindexed delta changes from last 28 minutes using Kafka replay (14:30 UTC)
+10. Search API traffic gradually restored with circuit breakers (14:50 UTC - MITIGATED)
+11. Recommendation Engine brought back online after model warm-up (16:00 UTC)
+12. Full reindexing completed, all services verified operational (18:35 UTC - RESOLVED)
+13. Post-incident review and documentation (21:00 UTC - CLOSED)`
+      ]
+    );
+    
+    const incident5Id = incident5Result.rows[0].id;
+    console.log('Created Incident 5:', incident5Result.rows[0].incident_number);
+
+    // Timeline events for Incident 5
+    const incident5Timeline = [
+      { type: 'detected', desc: 'Multiple Elasticsearch master nodes detected. Alert fired: "Potential split-brain condition".', user: 'jack.anderson@company.com', time: '2025-01-20T11:28:00Z' },
+      { type: 'investigation', desc: 'Confirmed network partition between AZ-1a and AZ-1b. Two master nodes active with conflicting cluster states.', user: 'emma.davis@company.com', time: '2025-01-20T11:45:00Z' },
+      { type: 'investigation', desc: 'Search returning inconsistent results. Some queries show products from Group A state, others from Group B state.', user: 'jack.anderson@company.com', time: '2025-01-20T11:50:00Z' },
+      { type: 'action', desc: 'Network partition healed but cluster states cannot merge. Elasticsearch cluster entered red state.', user: 'emma.davis@company.com', time: '2025-01-20T12:10:00Z' },
+      { type: 'action', desc: 'Attempted automatic recovery failed. 47 indices corrupted. Decision: rebuild cluster from snapshot.', user: 'emma.davis@company.com', time: '2025-01-20T12:30:00Z' },
+      { type: 'action', desc: 'Search API put in maintenance mode. All search traffic stopped to prevent further issues.', user: 'frank.miller@company.com', time: '2025-01-20T12:45:00Z' },
+      { type: 'action', desc: 'Elasticsearch cluster completely shut down. Deploying new cluster with corrected quorum configuration.', user: 'emma.davis@company.com', time: '2025-01-20T13:00:00Z' },
+      { type: 'action', desc: 'New 9-node cluster deployed with minimum_master_nodes properly configured for split-brain prevention.', user: 'emma.davis@company.com', time: '2025-01-20T13:30:00Z' },
+      { type: 'action', desc: 'Restoring indices from 11:00 UTC snapshot. Replaying Kafka events to recover last 28 minutes of changes.', user: 'jack.anderson@company.com', time: '2025-01-20T14:00:00Z' },
+      { type: 'mitigated', desc: 'Search API restored with circuit breakers enabled. Basic search functionality operational. Recommendations still offline.', user: 'emma.davis@company.com', time: '2025-01-20T14:50:00Z' },
+      { type: 'action', desc: 'Recommendation Engine ML models warming up. Loading product embeddings and similarity indices.', user: 'jack.anderson@company.com', time: '2025-01-20T16:00:00Z' },
+      { type: 'resolved', desc: 'All services fully operational. Search relevance verified. Recommendations producing results. Full functionality restored.', user: 'emma.davis@company.com', time: '2025-01-20T18:35:00Z' },
+    ];
+
+    for (const event of incident5Timeline) {
+      await pool.query(
+        `INSERT INTO timeline_events (incident_id, event_type, description, user_id, created_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [incident5Id, event.type, event.desc, userIds[event.user], event.time]
+      );
+    }
+
+    // Action items for Incident 5
+    const incident5Actions = [
+      { desc: 'Upgrade Elasticsearch to version 7.x with improved split-brain protection', user: 'emma.davis@company.com', completed: false },
+      { desc: 'Implement automated split-brain detection and cluster shutdown', user: 'jack.anderson@company.com', completed: true },
+      { desc: 'Add chaos engineering tests for AZ network partitions', user: 'bob.smith@company.com', completed: false },
+      { desc: 'Configure circuit breakers in Search API for Elasticsearch failures', user: 'frank.miller@company.com', completed: true },
+      { desc: 'Increase snapshot frequency from hourly to every 15 minutes', user: 'emma.davis@company.com', completed: true },
+      { desc: 'Document Elasticsearch disaster recovery procedures with runbooks', user: 'alice.johnson@company.com', completed: true },
+      { desc: 'Implement search fallback mechanism using read replicas or cached results', user: 'frank.miller@company.com', completed: false },
+      { desc: 'Review and validate all distributed system quorum configurations', user: 'henry.moore@company.com', completed: false },
+    ];
+
+    for (const action of incident5Actions) {
+      await pool.query(
+        `INSERT INTO action_items (incident_id, description, assigned_to_id, completed)
+         VALUES ($1, $2, $3, $4)`,
+        [incident5Id, action.desc, userIds[action.user], action.completed]
+      );
+    }
+
+    // Link services to Incident 5
+    const incident5Services = ['Search API', 'Recommendation Engine', 'Analytics API'];
+    for (const serviceName of incident5Services) {
+      await pool.query(
+        `INSERT INTO incident_services (incident_id, runbook_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [incident5Id, runbookIds[serviceName]]
+      );
+    }
+
+    console.log('Created Incident 5 with timeline and action items');
+
     console.log('Seed completed successfully!');
   } catch (error) {
     console.error('Error seeding database:', error);
