@@ -51,7 +51,7 @@ class AIService {
     if (serviceAccountPath) {
       console.log('[AI Service] Initializing with Google Gemini (Service Account File)');
       this.provider = 'google';
-      this.model = 'gemini-2.0-flash-exp'; // Latest Gemini model
+      this.model = 'gemini-2.5-flash'; // Latest Gemini model
       this.initPromise = this.initializeGoogleClientFromFile(serviceAccountPath);
       return;
     }
@@ -60,7 +60,7 @@ class AIService {
     if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY && process.env.GOOGLE_SERVICE_ACCOUNT_KEY.trim() !== '') {
       console.log('[AI Service] Initializing with Google Gemini (Service Account from ENV)');
       this.provider = 'google';
-      this.model = 'gemini-2.0-flash-exp'; // Latest Gemini model
+      this.model = 'gemini-2.5-flash'; // Latest Gemini model
       this.initPromise = this.initializeGoogleClientFromEnv();
       return;
     }
