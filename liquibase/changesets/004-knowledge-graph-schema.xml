@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="004-1-create-postmortem-embeddings-table" author="system">
+        <comment>Create table to store postmortem embeddings for knowledge graph</comment>
+        <createTable tableName="postmortem_embeddings">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="postmortem_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="incident_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="embedding_version" type="int" defaultValue="1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="embedding_vector" type="jsonb">
+                <constraints nullable="false"/>
+            </column>
+            <column name="embedding_text" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="metadata" type="jsonb">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+            baseTableName="postmortem_embeddings"
+            baseColumnNames="postmortem_id"
+            constraintName="fk_postmortem_embeddings_postmortem"
+            referencedTableName="postmortems"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+            baseTableName="postmortem_embeddings"
+            baseColumnNames="incident_id"
+            constraintName="fk_postmortem_embeddings_incident"
+            referencedTableName="incidents"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+
+        <createIndex tableName="postmortem_embeddings" indexName="idx_postmortem_embeddings_postmortem">
+            <column name="postmortem_id"/>
+        </createIndex>
+
+        <createIndex tableName="postmortem_embeddings" indexName="idx_postmortem_embeddings_incident">
+            <column name="incident_id"/>
+        </createIndex>
+
+        <createIndex tableName="postmortem_embeddings" indexName="idx_postmortem_embeddings_version">
+            <column name="embedding_version"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="004-2-create-incident-recommendations-table" author="system">
+        <comment>Create table to cache incident recommendations</comment>
+        <createTable tableName="incident_recommendations">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="incident_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recommended_incident_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="similarity_score" type="decimal(5,4)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recommendation_text" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="metadata" type="jsonb">
+                <constraints nullable="true"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+            baseTableName="incident_recommendations"
+            baseColumnNames="incident_id"
+            constraintName="fk_incident_recommendations_incident"
+            referencedTableName="incidents"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+            baseTableName="incident_recommendations"
+            baseColumnNames="recommended_incident_id"
+            constraintName="fk_incident_recommendations_recommended"
+            referencedTableName="incidents"
+            referencedColumnNames="id"
+            onDelete="CASCADE"/>
+
+        <createIndex tableName="incident_recommendations" indexName="idx_incident_recommendations_incident">
+            <column name="incident_id"/>
+        </createIndex>
+
+        <createIndex tableName="incident_recommendations" indexName="idx_incident_recommendations_score">
+            <column name="similarity_score" descending="true"/>
+        </createIndex>
+
+        <addUniqueConstraint
+            tableName="incident_recommendations"
+            columnNames="incident_id, recommended_incident_id"
+            constraintName="uq_incident_recommendations"/>
+    </changeSet>
+
+</databaseChangeLog>

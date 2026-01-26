@@ -35,12 +35,15 @@ const incidentsRouter = require('./routes/incidents');
 const runbooksRouter = require('./routes/runbooks');
 const usersRouter = require('./routes/users');
 const postmortemRouter = require('./routes/postmortem');
+const knowledgeGraphRouter = require('./routes/knowledgeGraph');
 
 // Use routes
 app.use('/api/incidents', incidentsRouter);
 app.use('/api/incidents/:id/postmortem', postmortemRouter);
+app.use('/api/incidents/:id/recommendations', knowledgeGraphRouter);
 app.use('/api/runbooks', runbooksRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/knowledge-graph', knowledgeGraphRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

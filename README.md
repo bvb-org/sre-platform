@@ -6,6 +6,7 @@ An incident.io and rootly.ai-inspired platform for incident management, AI-power
 
 - 🚨 **Incident Management** - Declare, track, and resolve incidents with real-time collaboration
 - 🤖 **AI-Powered Postmortems** - Automatically generate comprehensive postmortems from incident data
+- 🧠 **AI Knowledge Graph** - Get intelligent recommendations based on similar past incidents using Vertex AI embeddings
 - 📚 **Service Runbooks** - Centralized repository of service documentation and troubleshooting procedures
 - ⚡ **Real-time Updates** - WebSocket-powered live updates for incident timelines
 - 🐳 **Fully Containerized** - All components run in Docker containers
@@ -148,6 +149,8 @@ The platform uses PostgreSQL with the following main tables:
 - `timeline_events` - Incident activity timeline
 - `runbooks` - Service documentation
 - `postmortems` - AI-generated postmortems
+- `postmortem_embeddings` - Vector embeddings for knowledge graph
+- `incident_recommendations` - Cached AI recommendations
 - `action_items` - Incident action items
 
 Migrations are managed by Liquibase for version control and consistency.
@@ -208,6 +211,53 @@ The platform supports two AI providers:
    - See [GOOGLE_CLOUD_SETUP.md](GOOGLE_CLOUD_SETUP.md) for detailed setup instructions
 
 The system automatically selects the provider based on which credentials are available. If both are set, Anthropic takes priority.
+
+## AI Knowledge Graph (NEW! 🎉)
+
+The platform now includes an **AI-powered knowledge graph** that provides intelligent recommendations during incident investigation:
+
+### Features
+- 🔍 **Vector Similarity Search** - Finds similar past incidents using Vertex AI embeddings
+- 🤖 **AI Recommendations** - Gemini generates contextualized suggestions based on similar incidents
+- 🔄 **Auto-Refresh** - Recommendations update every 15 minutes as the incident evolves
+- 📊 **Similarity Scoring** - See how similar each recommendation is (0-100%)
+- 🔗 **Direct Links** - Navigate to referenced incidents with one click
+
+### Quick Setup
+
+1. **Enable GCP APIs** and create service account (see [Quick Start Guide](docs/KNOWLEDGE_GRAPH_QUICK_START.md))
+2. **Place service account key** in project root as `google-service-account-key.json`
+3. **Start the application** - Knowledge graph features activate automatically!
+
+### Documentation
+- 📖 [Quick Start Guide](docs/KNOWLEDGE_GRAPH_QUICK_START.md) - 5-minute setup
+- 📚 [Complete Setup Guide](docs/KNOWLEDGE_GRAPH_SETUP.md) - Full documentation
+
+### How It Works
+
+**When postmortems are published:**
+1. System extracts key data (symptoms, root cause, resolution)
+2. Generates embeddings using Vertex AI
+3. Stores in vector database for fast retrieval
+
+**When investigating incidents:**
+1. System generates embedding of current incident state
+2. Performs vector similarity search against published postmortems
+3. Gemini AI analyzes similar incidents and generates recommendations
+4. Displays actionable suggestions with similarity scores
+
+**Example Recommendation:**
+```
+INC-12345 - Payment API Timeout (87% match)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Based on INC-12345, a sudden loss of connection in the
+payments API was caused by an unannounced network switch
+reset. You might want to try:
+
+• Verify database connection pool settings
+• Check for long-running queries
+• Review connection timeout configuration
+```
 
 ## Contributing
 

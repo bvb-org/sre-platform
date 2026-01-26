@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router({ mergeParams: true });
 const pool = require('../db');
 const { getAIService } = require('../services/aiService');
+const { getKnowledgeGraphService } = require('../services/knowledgeGraphService');
 
 // GET /api/incidents/:id/postmortem - Get postmortem for an incident
 router.get('/', async (req, res) => {
@@ -488,6 +489,21 @@ router.patch('/', async (req, res) => {
       updatedAt: row.updated_at,
       publishedAt: row.published_at,
     };
+
+    // If postmortem was just published, trigger knowledge graph processing
+    if (status === 'published') {
+      const knowledgeGraphService = getKnowledgeGraphService();
+      if (knowledgeGraphService.isAvailable()) {
+        // Process asynchronously - don't wait for completion
+        knowledgeGraphService.processPublishedPostmortem(row.id)
+          .then(() => {
+            console.log('[Postmortem] Knowledge graph processing completed for:', row.id);
+          })
+          .catch(err => {
+            console.error('[Postmortem] Knowledge graph processing failed:', err);
+          });
+      }
+    }
 
     res.json(postmortem);
   } catch (error) {

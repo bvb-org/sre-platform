@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, Circle, AlertCircle, Info, RefreshCw, Pause, Search } from 'lucide-react';
 import { formatTimestamp, formatDate } from '@/lib/utils';
+import { KnowledgeGraphRecommendations } from './KnowledgeGraphRecommendations';
 
 type TimelineEvent = {
   id: string;
@@ -209,6 +210,9 @@ export function InvestigationTab({ incident, onRefresh }: InvestigationTabProps)
 
   return (
     <div className="space-y-6">
+      {/* AI Knowledge Graph Recommendations */}
+      <KnowledgeGraphRecommendations incidentId={incident.id} />
+
       {/* Add Update Form */}
       <div className="bg-white border border-border rounded-lg p-6">
         <h3 className="text-sm font-semibold text-text-primary mb-3">
