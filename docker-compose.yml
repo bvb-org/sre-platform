@@ -61,6 +61,8 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+      # Mount Google service account key if it exists in project root
+      - ./google-service-account-key.json:/app/google-service-account-key.json:ro
 
   # Next.js Frontend
   frontend:

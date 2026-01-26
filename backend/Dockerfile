@@ -11,6 +11,9 @@ RUN npm install
 # Copy application files
 COPY . .
 
+# Note: google-service-account-key.json will be mounted as a volume in docker-compose
+# This allows you to update the key without rebuilding the image
+
 # Expose port
 EXPOSE 3001
 

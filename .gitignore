@@ -44,3 +44,7 @@ prisma/migrations/
 
 # docker
 docker-data/
+
+# Google Cloud service account keys
+google-service-account-key.json
+*-service-account-key.json

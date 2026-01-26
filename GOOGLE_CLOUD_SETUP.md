@@ -13,8 +13,9 @@ The system automatically selects the provider based on which credentials are ava
 ## Priority Order
 
 1. If `ANTHROPIC_API_KEY` is set and not empty → Uses Anthropic Claude
-2. If `ANTHROPIC_API_KEY` is not set or commented out, and `GOOGLE_SERVICE_ACCOUNT_KEY` is set → Uses Google Gemini
-3. If neither is configured → Application will fail to start
+2. If `google-service-account-key.json` file exists in project root → Uses Google Gemini
+3. If `GOOGLE_SERVICE_ACCOUNT_KEY` environment variable is set → Uses Google Gemini
+4. If none are configured → Application will fail to start
 
 ## Setting Up Google Cloud Service Account
 
@@ -49,10 +50,24 @@ Make sure the following APIs are enabled in your Google Cloud project:
 
 ### Step 4: Configure the Application
 
-#### Option A: Using the JSON file content (Recommended for Docker/Production)
+#### Option A: Using the JSON file directly (RECOMMENDED - Easiest and most reliable)
+
+1. Rename the downloaded JSON file to `google-service-account-key.json`
+2. Place it in the **project root directory** (same level as `docker-compose.yml`)
+3. Comment out or remove the `ANTHROPIC_API_KEY` line in your `.env` file:
+   ```bash
+   # ANTHROPIC_API_KEY=your_anthropic_api_key_here
+   ```
+4. That's it! The application will automatically detect and use the JSON file.
+
+**Note**: The file is already added to `.gitignore` so it won't be committed to version control.
+
+#### Option B: Using environment variable (Fallback - Not recommended due to formatting issues)
+
+If you cannot use the JSON file approach:
 
 1. Open the downloaded JSON file
-2. Copy the entire JSON content (it should be a single line)
+2. Copy the entire JSON content (it must be a single line)
 3. Open your `.env` file in the backend directory
 4. Comment out or remove the `ANTHROPIC_API_KEY` line:
    ```bash
@@ -63,15 +78,7 @@ Make sure the following APIs are enabled in your Google Cloud project:
    GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"your-project-id","private_key_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n","client_email":"...","client_id":"...","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_x509_cert_url":"..."}
    ```
 
-**Important**: The entire JSON must be on a single line without line breaks.
-
-#### Option B: Using a file path (Alternative for local development)
-
-If you prefer to keep the JSON file separate:
-
-1. Place the downloaded JSON file in a secure location (e.g., `backend/config/service-account.json`)
-2. Add it to `.gitignore` to prevent committing it to version control
-3. Modify the AI service initialization to read from the file path
+**Important**: The entire JSON must be on a single line without line breaks. This method is prone to formatting errors, especially with newlines in the private key.
 
 ### Step 5: Restart the Application
 
@@ -97,7 +104,8 @@ npm run dev
 
 You should see a log message indicating which AI provider is being used:
 ```
-[AI Service] Initializing with Google Gemini (Service Account)
+[AI Service] Initializing with Google Gemini (Service Account File)
+Service account loaded: { project_id: 'your-project', client_email: 'your-sa@project.iam.gserviceaccount.com' }
 ```
 
 ### Step 6: Test the Integration
@@ -141,26 +149,40 @@ Test 2: Testing AI completion...
 ```bash
 # In .env
 ANTHROPIC_API_KEY=sk-ant-api03-...
-# GOOGLE_SERVICE_ACCOUNT_KEY=...  # Comment this out
+
+# Remove or rename google-service-account-key.json if present
 ```
 
 ### To use Google Gemini:
 ```bash
 # In .env
 # ANTHROPIC_API_KEY=sk-ant-api03-...  # Comment this out
-GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
+
+# Place google-service-account-key.json in project root
+# OR set environment variable (not recommended):
+# GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 ```
 
 ## Troubleshooting
 
 ### Error: "No AI provider configured"
-- Make sure at least one of `ANTHROPIC_API_KEY` or `GOOGLE_SERVICE_ACCOUNT_KEY` is set in your `.env` file
+- Make sure at least one of the following is configured:
+  - `ANTHROPIC_API_KEY` in your `.env` file
+  - `google-service-account-key.json` file in project root
+  - `GOOGLE_SERVICE_ACCOUNT_KEY` environment variable
 - Check that the values are not empty strings
 
-### Error: "Invalid GOOGLE_SERVICE_ACCOUNT_KEY format"
+### Error: "Invalid google-service-account-key.json file"
+- Ensure the JSON file is valid and properly formatted
+- Verify the file is named exactly `google-service-account-key.json`
+- Check that the file is in the project root directory (same level as `docker-compose.yml`)
+- Make sure the file contains all required fields: `type`, `project_id`, `private_key`, `client_email`, etc.
+
+### Error: "Invalid GOOGLE_SERVICE_ACCOUNT_KEY format" (when using environment variable)
 - Ensure the JSON is valid and properly formatted
 - Make sure there are no extra line breaks in the JSON string
 - Verify that all special characters are properly escaped
+- **Recommended**: Use the JSON file approach instead to avoid formatting issues
 
 ### Error: "Permission denied" or "API not enabled"
 - Verify that the Vertex AI API is enabled in your Google Cloud project
@@ -202,9 +224,13 @@ When using Google Gemini, the system uses:
 For temporary sandbox environments that are destroyed after one day:
 
 1. Create a service account in your Google Cloud project before the sandbox is created
-2. Download the JSON key and store it securely
-3. When setting up a new sandbox, simply add the `GOOGLE_SERVICE_ACCOUNT_KEY` to the `.env` file
+2. Download the JSON key and store it securely on your local machine
+3. When setting up a new sandbox:
+   - Simply place the `google-service-account-key.json` file in the project root
+   - Or add the `GOOGLE_SERVICE_ACCOUNT_KEY` to the `.env` file (less reliable)
 4. The service account will continue to work even after the sandbox is destroyed, as it's tied to your Google Cloud project, not the sandbox
+
+**Tip**: Keep the JSON file on your local machine so you can quickly copy it to new sandbox environments.
 
 ## Cost Considerations
 
