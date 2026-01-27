@@ -1,0 +1,15 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "SRE Platform DB",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "sre_platform",
+      "Username": "sre_user",
+      "Password": "sre_password",
+      "SSLMode": "prefer",
+      "SavePassword": true
+    }
+  }
+}

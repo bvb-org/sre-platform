@@ -1,0 +1,2 @@
+postgres:5432:*:sre_user:sre_password
+*:*:*:sre_user:sre_password
