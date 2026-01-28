@@ -288,7 +288,7 @@ class KnowledgeGraphService {
 
     try {
       const model = this.vertexAI.getGenerativeModel({
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.5-flash',
       });
 
       const prompt = `You are an expert SRE analyzing incident patterns. Based on similar past incidents, provide actionable recommendations for the current incident.
