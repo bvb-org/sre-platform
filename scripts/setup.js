@@ -89,14 +89,15 @@ async function setup() {
   let decryptPassword = null;
   
   if (hasEncrypted) {
-    console.log('🔐 Encrypted values detected in .env.example\n');
-    decryptPassword = await question('   Enter decryption password: ', true);
+    console.log('🔐 Decryption Password\n');
+    console.log('   Enter password to decrypt ServiceNow instance credentials:\n');
+    decryptPassword = await question('   Password: ', true);
     console.log('');
   }
 
   // Ask for Anthropic API key
-  console.log('\n📝 Configuration\n');
-  const apiKey = await question('   Enter your Anthropic API key (press Enter to skip for hackaton setup): ');
+  console.log('\n📝 AI Configuration\n');
+  const apiKey = await question('   Anthropic API key (press Enter to skip): ');
 
   // Process the env content
   let envContent = envExample;
@@ -115,20 +116,20 @@ async function setup() {
             const decryptedValue = decrypt(encryptedValue, decryptPassword);
             return `${key}=${decryptedValue}`;
           } catch (error) {
-            console.log(`   ⚠️  Failed to decrypt ${key}: ${error.message}`);
+            // Silent fail - keep encrypted value
             return line;
           }
         }
         return line;
       });
       envContent = decryptedLines.join('\n');
-      console.log('   ✅ Encrypted values decrypted');
+      console.log('   ✅ ServiceNow credentials decrypted\n');
     } catch (error) {
-      console.log(`   ⚠️  Decryption failed: ${error.message}`);
+      console.log(`   ⚠️  Decryption failed\n`);
     }
   }
   
-  // Replace the placeholder with the actual key or keep placeholder
+  // Replace the placeholder with the actual key or comment it out
   if (apiKey && apiKey.trim()) {
     envContent = envContent.replace(
       'ANTHROPIC_API_KEY=your_anthropic_api_key_here',
@@ -138,17 +139,20 @@ async function setup() {
       '#ANTHROPIC_API_KEY=your_anthropic_api_key_here',
       `ANTHROPIC_API_KEY=${apiKey.trim()}`
     );
-    console.log('   ✅ API key configured');
+    console.log('   ✅ Anthropic API key configured\n');
   } else {
-    console.log('   ⚠️  Skipped - You can add it later in the .env file');
+    // Comment out the placeholder to prevent it from being used
+    envContent = envContent.replace(
+      'ANTHROPIC_API_KEY=your_anthropic_api_key_here',
+      '#ANTHROPIC_API_KEY=your_anthropic_api_key_here'
+    );
+    console.log('   ⏭️  Skipped\n');
   }
 
   // Ask for Google service account JSON
-  console.log('\n🔑 Google Cloud Service Account (Optional)\n');
-  console.log('   If you want to use Google Gemini AI or Knowledge Graph features,');
-  console.log('   you need to provide your service account JSON.\n');
+  console.log('🔑 Google Cloud Service Account\n');
   
-  const useServiceAccount = await question('   Do you want to configure Google service account now? (y/N): ');
+  const useServiceAccount = await question('   Configure Google service account? (y/N): ');
   
   if (useServiceAccount.toLowerCase() === 'y') {
     const serviceAccountPath = 'google-service-account-key.json';
@@ -159,10 +163,8 @@ async function setup() {
       const stats = fs.statSync(serviceAccountPath);
       if (stats.isDirectory()) {
         fs.rmdirSync(serviceAccountPath, { recursive: true });
-        console.log('   🗑️  Removed existing directory');
       } else {
         fs.unlinkSync(serviceAccountPath);
-        console.log('   🗑️  Removed existing file');
       }
     }
     
@@ -170,24 +172,19 @@ async function setup() {
       const stats = fs.statSync(backendServiceAccountPath);
       if (stats.isDirectory()) {
         fs.rmdirSync(backendServiceAccountPath, { recursive: true });
-        console.log('   🗑️  Removed existing backend directory');
       } else {
         fs.unlinkSync(backendServiceAccountPath);
-        console.log('   🗑️  Removed existing backend file');
       }
     }
     
     // Step 2: Create empty file
     fs.writeFileSync(serviceAccountPath, '');
-    console.log('\n   ✅ Created empty file: google-service-account-key.json');
-    console.log('\n   📋 Please follow these steps:');
-    console.log('   1. Open google-service-account-key.json in your editor');
-    console.log('   2. Paste your Google service account JSON into the file');
-    console.log('   3. Save the file');
-    console.log('   4. Come back here and press Enter to continue\n');
+    console.log('\n   📁 File created: google-service-account-key.json');
+    console.log('   📋 Open the file, paste your Google service account JSON, and save it');
+    console.log('   ⏸️  Press Enter when ready...\n');
     
     // Step 3: Wait for user to paste content
-    await question('   Press Enter when you have pasted and saved the JSON... ');
+    await question('');
     
     // Step 4: Validate the file
     try {
@@ -200,21 +197,35 @@ async function setup() {
       const parsed = JSON.parse(content);
       
       if (!parsed.type || !parsed.project_id || !parsed.private_key) {
-        throw new Error('Missing required fields (type, project_id, private_key)');
+        throw new Error('Missing required fields');
       }
       
       // Reformat the JSON nicely
       fs.writeFileSync(serviceAccountPath, JSON.stringify(parsed, null, 2));
       
-      console.log('\n   ✅ Google service account key validated and formatted');
-      console.log(`   🔑 Project: ${parsed.project_id}`);
+      console.log(`   ✅ Google service account configured (${parsed.project_id})\n`);
+      
+      // Comment out ANTHROPIC_API_KEY in .env if it exists
+      if (fs.existsSync('.env')) {
+        let envFileContent = fs.readFileSync('.env', 'utf8');
+        const originalContent = envFileContent;
+        
+        // Comment out any uncommented ANTHROPIC_API_KEY lines
+        envFileContent = envFileContent.replace(
+          /^ANTHROPIC_API_KEY=/gm,
+          '#ANTHROPIC_API_KEY='
+        );
+        
+        if (envFileContent !== originalContent) {
+          fs.writeFileSync('.env', envFileContent);
+        }
+      }
     } catch (error) {
-      console.log(`\n   ⚠️  Invalid service account file: ${error.message}`);
-      console.log('   ⚠️  The file was created but contains invalid JSON');
-      console.log('   ⚠️  Please fix it manually before starting Docker');
+      console.log(`   ⚠️  Invalid JSON: ${error.message}`);
+      console.log('   ⚠️  Fix google-service-account-key.json before starting Docker\n');
     }
   } else {
-    console.log('   ℹ️  Skipped - You can add google-service-account-key.json later');
+    console.log('   ⏭️  Skipped\n');
     
     // Clean up any existing directories that might block Docker
     const serviceAccountPath = 'google-service-account-key.json';
@@ -224,7 +235,6 @@ async function setup() {
       const stats = fs.statSync(serviceAccountPath);
       if (stats.isDirectory()) {
         fs.rmdirSync(serviceAccountPath, { recursive: true });
-        console.log('   🗑️  Removed existing directory (was blocking Docker mount)');
       }
     }
     
@@ -232,14 +242,13 @@ async function setup() {
       const stats = fs.statSync(backendServiceAccountPath);
       if (stats.isDirectory()) {
         fs.rmdirSync(backendServiceAccountPath, { recursive: true });
-        console.log('   🗑️  Removed backend directory (was blocking Docker mount)');
       }
     }
   }
 
   // Write .env file
   fs.writeFileSync('.env', envContent);
-  console.log('\n✅ .env file created successfully!\n');
+  console.log('✅ Setup complete!\n');
   
   rl.close();
 }
