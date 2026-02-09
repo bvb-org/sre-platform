@@ -888,7 +888,21 @@ function buildMitigationPrompt(incident) {
     timelineSummary = timelineEvents.map(e => `- ${e.createdAt}: [${e.type}] ${e.description} (by ${e.userName})`).join('\n') || 'No timeline events recorded';
   }
   
-  return `You are an expert Site Reliability Engineer writing the Mitigation section of a postmortem. Generate ONLY the mitigation description based on the following incident data:
+  return `You are an expert Site Reliability Engineer writing the Mitigation section of a postmortem. 
+  
+You know that for mitigation it is important to focus on the actions taken to contain and resolve the incident and minimize customer impact. Time is of the essence, therefore you evaluate the timeline of events, anything taking more than 30 minutes should be questioned. 
+
+Some recommended questions to guide your analysis:
+- In case of a recent deployment, did you prepare a rollback plan before deploying?
+- In case of a sudden failure: 
+    - where you alerted about the failure? If not, why not and how could monitoring/alerting be improved to catch similar issues faster in the future?
+    - was it clear what was needed to resolove the incident? If not, what were the blockers to understanding the issue and how could that be improved for next time?
+    - where there any resilience measures that could have been applied to reduce the blast radius? (circuit breakers, fallbacks, rate limiting, etc.)
+    - were there runbooks or documented procedures that could have been followed to reduce time to mitigation?
+    - in case of an internal component failure, question about the LCM of this component. How is that done?
+- Are there any best practices or patterns that could have been applied to mitigate faster? (e.g. better runbooks, more automation, improved monitoring/alerting, etc.)
+
+Generate ONLY the mitigation description based on the following incident data:
 
 **Incident Details:**
 - Title: ${incident.title}
@@ -903,6 +917,8 @@ ${timelineSummary}
 
 Generate a detailed mitigation description (2-4 paragraphs) that explains:
 - What immediate actions were taken to contain or resolve the incident
+- What are your concern about the mitigation process (e.g. was it too slow, were there any missteps, was the wrong approach taken)
+- What improvements could be made to the mitigation process (e.g. better runbooks, more automation, improved monitoring/alerting)
 - What resilience patterns were applied (circuit breakers, fallbacks, rate limiting, etc.)
 - Key decisions made and their rationale
 - How the incident was brought under control
