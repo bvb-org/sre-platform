@@ -513,6 +513,15 @@ Return ONLY the JSON array, no other text.`;
         );
 
         if (similarIncident) {
+          // Ensure similarity score is valid (clamp between 0 and 1, handle edge cases)
+          let similarityScore = rec.similarityScore || similarIncident.similarityScore;
+          if (typeof similarityScore !== 'number' || isNaN(similarityScore)) {
+            console.warn('[Knowledge Graph] Invalid similarity score, defaulting to 0:', similarityScore);
+            similarityScore = 0;
+          }
+          // Clamp between 0 and 1 to handle floating point precision issues
+          similarityScore = Math.max(0, Math.min(1, similarityScore));
+
           await pool.query(
             `INSERT INTO incident_recommendations 
              (incident_id, recommended_incident_id, similarity_score, recommendation_text, metadata)
@@ -526,7 +535,7 @@ Return ONLY the JSON array, no other text.`;
             [
               incidentId,
               similarIncident.incidentId,
-              rec.similarityScore || similarIncident.similarityScore,
+              similarityScore,
               JSON.stringify(rec),
               JSON.stringify({ generatedAt: new Date().toISOString() }),
             ]

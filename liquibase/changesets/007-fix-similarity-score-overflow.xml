@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="007-1-fix-similarity-score-type" author="system">
+        <comment>Fix similarity_score column to prevent numeric overflow. Change from decimal(5,4) to double precision to handle any similarity score values from AI.</comment>
+        
+        <modifyDataType
+            tableName="incident_recommendations"
+            columnName="similarity_score"
+            newDataType="double precision"/>
+    </changeSet>
+
+</databaseChangeLog>
