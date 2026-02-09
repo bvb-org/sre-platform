@@ -30,7 +30,7 @@ export default function RunbooksPage() {
 
   const fetchRunbooks = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/runbooks');
+      const response = await fetch('/api/runbooks');
       if (response.ok) {
         const data = await response.json();
         setRunbooks(data);
