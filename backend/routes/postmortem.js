@@ -958,7 +958,280 @@ ${timelineSummary}
 - Problem Statement: ${incident.problem_statement || 'Not documented'}
 - Causes: ${incident.causes || 'Under investigation'}
 
-Generate a systemic causal analysis using the Swiss cheese model. You MUST generate 2-4 causal analysis items.
+Generate a systemic causal analysis using the Swiss cheese model. You MUST generate at least 3-6 causal analysis items per group (mitigation and prevention), try to cover multiple layers of the model. Group the causal analysis into the following categories:
+- Mitigation: these are recommendations related to the layers 'operate' and 'response'
+- Prevention: these are recommendations related to the layers 'define', 'design', 'build', and 'deploy'
+
+For each causal analysis item, provide:
+- A clear description of the issue or gap identified
+- The layer of the Swiss cheese model it relates to (define, design, build, test, deploy, operate, response)
+- Specific recommendations for how to address it
+
+Use the guidance below to identify potential holes in each layer:
+
+**Interception Layer Guidance:**
+
+### define
+This layer covers all business related steps. Clear requirements, well defined boundaries and the agreement that all involved parties have a clear understanding of these requirements and how these can be translated into design and test cases.  
+
+#### Engineering principles to consider:
+-   Requirements should be clear, concise, and free of ambiguity
+-   Define what needs to be delivered and the boundaries of the requirements, what should not happen?
+-   Involve all relevant stakeholders in defining requirements
+-   Define both functional and non-functional requirements
+-   Define acceptance criteria to ensure requirements are met
+-   Identify and document dependencies early in the process
+-   Ensure requirements are testable and measurable
+-   Regularly review and update requirements as needed to reflect changing business needs
+-   Prioritize requirements based on business value and risk
+-   Ensure that requirements are feasible and achievable within the project constraints
+-   Communicate requirements effectively to all team members and stakeholders
+
+#### Sample questions (not needed to use them all always, pick the ones that are relevant) :
+-	Are the boundaries of the requirements clear?
+-	Have the requirements been communicated properly?
+-	Have all relevant stakeholders been involved in defining the requirements?
+-	Have dependencies been identified and documented?
+-	Are acceptance criteria defined and agreed upon?
+
+
+
+### design
+This layer covers all architecture related steps. For example the design of a specific application, but also the design of the infra landscape, the tools available, the frameworks available, the strictness of your systems (both too strict or not strict enough), etc. These decisions should be covered in the well architected framework.
+
+#### Engineering principles to consider:
+-   Follow established architectural principles and patterns
+-   Ensure the design aligns with business and non-functional requirements
+-   Ensure the design is fault tolerant and resilient to failures, auto-healing where possible
+-   Design for scalability, reliability, and maintainability
+-   Incorporate security best practices into the design
+-   Use design reviews and peer feedback to validate the design
+-   Ensure the design is modular and promotes separation of concerns
+-   Consider the operational aspects of the design, including monitoring, alerting and 2nd day operations
+-   Document the design decisions and rationale for future reference
+-   Validate the design through prototyping or proof of concepts when necessary
+-   Regularly review and update the design to address emerging technologies and changing requirements
+
+#### Sample questions:
+-	Does the design follow [WAF] best practices? 
+-	Are there any flaws in the design that contributed to the impact (e.g. no input validation)
+-	Can the design be tested properly?
+-	Is the design in line with the business requirements (e.g. response should be within 2 secs)
+-	Is the design in line with the non functional requirements?
+-	Is the design future proof and adaptable to changing requirements?
+
+
+
+### build
+This layer covers all actions and procedures within the squads / sprints. It translates the design into working software, if needed refactoring of existing software, writing tests. If during this process difficulties are encountered it’s valid to challenge design or requirements to improve them. It’s unlikely that define and design will be first time right. Some guidance can be taken from existing software quality models like ISO25010 or FURPS.
+
+####  ISO/IEC 25010 (Software Quality Model)
+| Characteristic | Description |
+|----------------|-------------|
+| 1. Functional Suitability | How well the software meets stated needs.<br>Includes: <br>• Functional completeness <br>• Functional correctness <br>• Functional appropriateness |
+| 2. Performance Efficiency | Resource usage and response times.<br>Includes: <br>• Time behavior <br>• Resource utilization <br>• Capacity |
+| 3. Compatibility | Ability to work with other systems.<br>Includes: <br>• Co-existence <br>• Interoperability |
+| 4. Usability | Ease of use and user experience.<br>Includes: <br>• Learnability <br>• Operability <br>• User error protection <br>• User interface aesthetics <br>• Accessibility |
+| 5. Reliability | Ability to perform under conditions.<br>Includes: <br>• Maturity <br>• Availability <br>• Fault tolerance <br>• Recoverability |
+| 6. Security | Protection against threats.<br>Includes: <br>• Confidentiality <br>• Integrity <br>• Non-repudiation <br>• Accountability <br>• Authenticity |
+| 7. Maintainability | Ease of modification.<br>Includes: <br>• Modularity <br>• Reusability <br>• Analyzability <br>• Modifiability <br>• Testability |
+| 8. Portability | Ability to be transferred to other environments.<br>Includes: <br>• Adaptability <br>• Installability <br>• Replaceability |
+
+
+#### Engineering principles to consider:
+-   Follow established best practices for resilience, security, and software development
+-   Use static code analysis tools to identify potential issues
+-   Implement designs properly while maintaining code quality and maintainability
+-   Using least power principle
+-   Create software that is built for testing and observability
+-   For every release update the documentation accordingly
+-   Ensure business requirements are properly implemented in code
+-   Challenge design and requirements when implementation reveals issues
+-   Refactor code as needed to improve quality and maintainability
+-   Provide feedback to improve upstream processes
+-   Implement sufficient validation processes including peer review
+-   Be strict in validation, the more pain you take now, the less pain you have later
+-   Maximize automation in build, test, and deployment processes
+-   Continuously monitor and improve the build process to reduce friction and increase efficiency
+-   Limit manual steps in the build process to reduce the risk of human error
+
+#### Sample questions:
+-	Does the team follow best practices regarding resilience, security and software development?
+-	Is the design properly implemented?
+-	Have the business requirements been taken into account with the implementation?
+-	Have the design and requirements been challenged enough?
+-	Is the LCM and capacity management up to par? 
+-	Is the software build for testing? 
+-	Are there enough validations in the process like peer-review?
+-	Is there enough automation in the process?
+-	Are build failures and regressions addressed promptly and transparently?
+-	Are feature toggles or other mechanisms used to manage incomplete features?
+
+
+### test
+This layer covers all actions related to testing. There is an overlap with the previous Build layer where testing is also part of as “is software build in such a way that it can be tested”. This is a deep dive into the testing practices within the team, but also external tests (e.g. PenTests) being executed
+
+#### Engineering principles to consider:
+-   Implement a comprehensive testing strategy that includes unit, integration, system, and acceptance testing
+-   Ensure test cases cover both functional and non-functional requirements
+-   Incorporate exploratory testing to uncover issues that may not be captured by scripted test cases
+-   Ensure that testing includes edge cases and negative scenarios to identify potential failure points
+-   Use automated testing tools to increase efficiency and coverage
+-   Use metrics and analytics to measure the effectiveness of the testing process and identify areas for improvement
+-   Foster a culture of quality within the team, emphasizing the importance of testing and quality assurance
+-   Leverage continuous integration and continuous deployment (CI/CD) pipelines to automate testing and deployment processes
+-   Maintain a separate test environment that closely mirrors production for replaying production issues
+-   Test as much of your basic functionality as possible on your local machine or non-prod environment
+-   Involve testers early in the development process to identify potential issues
+-   Regularly review and update test cases to reflect changes in requirements and design
+-   Track and manage defects effectively to ensure timely resolution
+-   Conduct performance and load testing to validate system behavior under stress
+-   Ensure security testing is part of the overall testing strategy
+-   Use code coverage metrics to identify untested areas of the codebase
+-   Incorporate user feedback into acceptance testing to ensure the system meets user needs
+-   Encourage collaboration between developers, testers, and other stakeholders to improve the overall quality of the software
+-   Use version control to manage test cases and maintain a history of changes
+-   Regularly conduct retrospectives to identify areas for improvement in the testing process
+-   Ensure that testing practices are aligned with industry standards and best practices
+-   Validate that test-case are in line with the requirements and design
+  
+#### Sample questions:
+-	Does the data reflect the business requirements?
+-	Are best practices regarding testing used?
+-	Have all scenarios been tested?
+-	Have proper testing practices been used in non-prod to mimick production scenarios?
+-	Can the change be tested in non-prod?
+-	Are performance and load tests conducted ?
+
+
+### release
+This layer covers all packaging, sign off activities etc. Change management is also covered in this step for example. How big is the release, how is it reviewed, how is it described in the change record, etc.
+
+#### Engineering principles to consider:
+-   Follow established change management processes and procedures
+-   Changes are peer-reviewed by external teams to ensure independence and approved by relevant stakeholders
+-   Changes are homogeneous and clearly described with a single change type
+-   Use a standardized change request template to capture all necessary information
+-   Clearly define the scope and objectives of the change
+-   Assess the potential impact and risks associated with the change and how you mitigate them
+-   Develop a comprehensive test plan, deployment strategy and rollback strategy
+-   Schedule changes during appropriate windows to minimize impact on users, but have enough time to validate the change
+-   Communicate changes effectively to all affected parties before and after implementation
+-   Understand how to validate the change in production and make sure release strategy is in line with the risk of the change
+-   Monitor the system closely after the change to detect and address any issues promptly
+-   Document the change thoroughly, including any lessons learned for future reference
+-   Ensure that changes are aligned with business priorities and objectives
+-   Use automation tools to streamline the change management process where possible
+-   Ensure compliance with regulatory and organizational policies related to change management
+-   Regularly review and update change management processes to reflect best practices and lessons learned
+
+#### Sample questions:
+-	Has the change been peer reviewed?
+-	Has the change been approved by relevant stakeholders?
+-	Is the change homogeneous? In other words is this change only doing an update of software or a decommisioning of endpoints. Especially decommissioning is something that needs to be done without any other changes to not impact rollback options. The full change should be described by 1 change type. Is the change type set correctly?
+-	Is the change properly described
+-	Are test plan and rollback strategy properly described and do they reflect reality?
+-	Have all situational circumstance been taken into account (e.g. DR activities, change freeze, release windows, high care periods)
+-	Have all best practices been followed?
+-	Is it clear what has been tested and what could not been tested and do you align the release strategy on these uncertainties? Typically production data is hard to replicate on non-prod resulting in other resource usage (cpu, memory) compared to non-prod. 
+-	Is it clear what deploy strategy will be used and why?
+-	Is there a communication plan for informing stakeholders before and after release?
+-	Are monitoring and alerting in place to detect issues? (Example : Observability L2 complaint ?)
+-	Does the change need to be executed within a specific timeframe or can it take multiple days?
+
+
+
+### deploy
+This layer covers all aspects of bringing a release to production. What strategy is used, what validations are used, what technique is used for deployment, etc. 
+
+#### Engineering principles to consider:
+-   Have a fully automated deployment process to minimize human error
+-   Do changes to your interface, e.g. API changes,tooling, or database changes in isolation to minimize risk and maximize rollback options
+-   Use of deployment strategies that minimize user impact and cover the risk of the deployment (e.g., canary, blue-green)
+-   Make sure mitigation measures are in place before deployment (e.g., feature toggles, circuit breakers)
+-   Intermediate checks are in place to validate the deployment against production data.
+-   Implement comprehensive monitoring and alerting to detect issues early
+-   Make sure you know how to validate the deployment (e.g., smoke tests, canary analysis) at every stage of the deployment
+-   Ensure rollback procedures are well-defined, known and tested
+-   Communicate deployment plans and status to all relevant stakeholders
+-   Conduct post-deployment reviews to identify areas for improvement
+-   Ensure deployments are scheduled during appropriate windows to minimize impact on users ( this is not always during low traffic periodes, sometimes it’s better to do it during high traffic periods to validate the system under load)
+-   Document deployment procedures and lessons learned for future reference
+-   Ensure compliance with regulatory and organizational policies related to deployment (e.g. release windows, change freeze periods)
+-   Regularly review and update deployment processes to reflect best practices and lessons learned
+
+#### Sample questions:
+-	Was the deployment properly executed?
+-	Was the deployment properly monitored?
+-	Was the deployment properly validated?
+-	Where best practices used?
+-	Was the chosen deployment strategy in line with the risk of the deployment? 
+
+
+### 7. operate
+This layer covers all aspects of running the applications in production e.g. standby practices, migrations, DR activities, etc. It includes day-to-day operations, monitoring, incident response, capacity management, DR and ensuring service continuity. The goal is to ensure that systems are stable, observable, secure, and resilient under real-world conditions.
+
+#### Engineering principles to consider:
+-   System is auto healing where possible
+-   If possible have a degraded mode to limit user impact
+-   Capacity is managed proactively to prevent resource exhaustion
+-   Regularly review and update operational procedures to reflect changes in the system and best practices
+-   Ensure operational readiness through thorough testing and validation before deployment
+-   Implement robust monitoring and alerting to detect and respond to issues promptly
+-   Foster a culture of continuous improvement in operational practices
+-   Ensure clear communication and collaboration between development and operations teams
+-   Conduct regular training and drills to prepare teams for incident response
+-   Use automation to streamline operational tasks and reduce the risk of human error
+-   Maintain comprehensive documentation of operational procedures and system architecture
+-   Implement security best practices to protect systems and data
+-   Regularly review and update disaster recovery and business continuity plans
+-   Use metrics and analytics to measure operational performance and identify areas for improvement
+-   Encourage feedback from users and stakeholders to improve operational practices
+-   Ensure compliance with regulatory and organizational policies related to operations
+-   Validate that operational practices are aligned with industry standards and best practices
+-   Ensure that operational practices are regularly reviewed and updated to reflect changes in the system architecture and business requirements
+-   Validate that operational practices cover both functional and non-functional requirements
+-   Incorporate feedback from incident reviews to improve operational practices and resilience strategies
+-   Ensure that operational practices are designed to support scalability and flexibility as the system evolves
+
+#### Sample questions:
+-	Standby/on-call practices/runbooks/documentation
+-	Operational readiness
+-	Resilience patterns failed or worked?
+-	Capacity management
+-	Tooling and automation
+
+
+### 8. response
+This layer covers all mitigation actions and resolution actions needed to solve impact. 
+
+#### Engineering principles to consider:
+-   Focus on mitigation to minimize user impact before working on a permanent fix
+-   Communicate proactively with stakeholders to manage expectations
+-   Document steps taken during the incident for future reference
+-   Document decision-making processes to improve future responses
+-   Rapidly identify and mitigate the impact of incidents to minimize user disruption
+-   Maintain clear and timely communication with all stakeholders during incidents
+-   Use well-prepared response procedures and tools to streamline incident resolution
+-   Coordinate response efforts across teams and organizations effectively
+-   Conduct thorough post-incident reviews to identify improvement opportunities
+-   Implement feedback loops to enhance response capabilities over time
+-   Share lessons learned across teams to improve organizational response maturity
+-   Ensure response procedures are regularly reviewed and updated to reflect best practices
+-   Train teams on incident response protocols and tools to ensure preparedness
+-   Foster a culture of continuous improvement in incident response processes
+-   Use metrics and analytics to measure the effectiveness of incident response and identify areas for improvement
+
+#### Sample questions:
+-	Have best practices been used?
+-	Was the communication and decision making up to par?
+-	Was the response well prepared (e.g. helm rollback) 
+-	Was there enough focus on mitigation over fixing?
+-	Was the blast radius of the issue quickly identified and contained?
+-	Was the user impact minimized as quickly as possible, i.e. focus on mitigation over solving?
+-	Was the response time within acceptable thresholds?
+-	How did the communication go, i.e. contacting other teams, escalating priority ? 
+
 
 Format as a valid JSON array with this EXACT structure:
 [
@@ -1150,6 +1423,16 @@ Describe all actions, resilience patterns, or decisions that were taken to mitig
 
 [CAUSAL_ANALYSIS]
 Provide a systemic causal analysis using the Swiss cheese model. You MUST generate at least 2-4 causal analysis items.
+
+**Interception Layer Guidance:**
+- **define**: Failures in requirements, specifications, or initial design decisions. Ask: Were requirements clear? Was the system properly scoped?
+- **design**: Architectural or design flaws. Ask: Was the design resilient? Were dependencies considered? Was scalability planned?
+- **build**: Implementation bugs, code quality issues. Ask: Were coding best practices followed? Was error handling adequate?
+- **test**: Testing gaps, missed scenarios. Ask: Was test coverage sufficient? Were edge cases tested? Was load testing done?
+- **release**: Release process failures, approval gaps. Ask: Were release checklists followed? Was the rollback plan tested?
+- **deploy**: Deployment errors, configuration issues. Ask: Was the deployment automated? Were configs validated? Was monitoring enabled?
+- **operate**: Monitoring, alerting, or operational gaps. Ask: Were alerts configured? Was the dashboard comprehensive? Were runbooks available?
+- **response**: Incident detection and response delays. Ask: Was the incident detected quickly? Was escalation clear? Were responders trained?
 
 Format as a valid JSON array with this EXACT structure:
 [
