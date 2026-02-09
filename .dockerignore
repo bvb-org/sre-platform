@@ -52,3 +52,7 @@ google-service-account-key.json
 
 # Misc
 .husky
+
+# Old/unused files
+app/api.old
+lib/db.ts.old
