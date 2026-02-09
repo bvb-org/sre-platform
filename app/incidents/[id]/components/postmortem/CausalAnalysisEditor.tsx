@@ -87,13 +87,13 @@ export function CausalAnalysisEditor({
     <div className="space-y-4">
       {/* Existing Items */}
       {items.map((item, index) => (
-        <div key={index} className="p-4 bg-background border border-border rounded-lg">
+        <div key={index} className="p-4 bg-background dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg">
           {editingIndex === index ? (
             <div className="space-y-3">
               <select
                 value={item.interceptionLayer}
                 onChange={(e) => updateItem(index, { ...item, interceptionLayer: e.target.value as any })}
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-purple"
               >
                 {SWISS_CHEESE_LAYERS.map(layer => (
                   <option key={layer} value={layer}>{layer.charAt(0).toUpperCase() + layer.slice(1)}</option>
@@ -104,21 +104,21 @@ export function CausalAnalysisEditor({
                 value={item.cause}
                 onChange={(e) => updateItem(index, { ...item, cause: e.target.value })}
                 placeholder="Cause"
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-purple"
               />
               <input
                 type="text"
                 value={item.subCause}
                 onChange={(e) => updateItem(index, { ...item, subCause: e.target.value })}
                 placeholder="Sub-cause"
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-purple"
               />
               <textarea
                 value={item.description}
                 onChange={(e) => updateItem(index, { ...item, description: e.target.value })}
                 placeholder="Description"
                 rows={2}
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple resize-none"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-purple resize-none"
               />
               <div className="flex gap-2">
                 <button
@@ -129,7 +129,7 @@ export function CausalAnalysisEditor({
                 </button>
                 <button
                   onClick={() => setEditingIndex(null)}
-                  className="px-3 py-1 border border-border text-text-secondary rounded text-sm hover:bg-background"
+                  className="px-3 py-1 border border-border dark:border-gray-600 text-text-secondary dark:text-gray-300 rounded text-sm hover:bg-background dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>
@@ -140,18 +140,18 @@ export function CausalAnalysisEditor({
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 bg-accent-purple/10 text-accent-purple text-xs font-medium rounded">
+                    <span className="px-2 py-0.5 bg-accent-purple/10 dark:bg-purple-900/30 text-accent-purple dark:text-purple-400 text-xs font-medium rounded">
                       {item.interceptionLayer.charAt(0).toUpperCase() + item.interceptionLayer.slice(1)}
                     </span>
                   </div>
-                  <p className="text-sm font-medium text-text-primary">Cause: {item.cause}</p>
-                  <p className="text-sm text-text-secondary">Sub-cause: {item.subCause}</p>
+                  <p className="text-sm font-medium text-text-primary dark:text-white">Cause: {item.cause}</p>
+                  <p className="text-sm text-text-secondary dark:text-gray-400">Sub-cause: {item.subCause}</p>
                   {item.description && (
-                    <p className="text-sm text-text-secondary mt-1">{item.description}</p>
+                    <p className="text-sm text-text-secondary dark:text-gray-400 mt-1">{item.description}</p>
                   )}
                   {item.actionItems && item.actionItems.length > 0 && (
                     <div className="mt-2">
-                      <span className="text-xs text-text-secondary">
+                      <span className="text-xs text-text-secondary dark:text-gray-400">
                         {item.actionItems.length} action item{item.actionItems.length !== 1 ? 's' : ''}
                       </span>
                     </div>
@@ -160,24 +160,24 @@ export function CausalAnalysisEditor({
                 <div className="flex gap-1">
                   <button
                     onClick={() => toggleExpanded(index)}
-                    className="p-1 hover:bg-background rounded"
+                    className="p-1 hover:bg-background dark:hover:bg-gray-700 rounded"
                     title="Manage action items"
                   >
                     {expandedIndex === index ? (
-                      <ChevronUp className="w-4 h-4 text-text-secondary" />
+                      <ChevronUp className="w-4 h-4 text-text-secondary dark:text-gray-400" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-text-secondary" />
+                      <ChevronDown className="w-4 h-4 text-text-secondary dark:text-gray-400" />
                     )}
                   </button>
                   <button
                     onClick={() => setEditingIndex(index)}
-                    className="p-1 hover:bg-background rounded"
+                    className="p-1 hover:bg-background dark:hover:bg-gray-700 rounded"
                   >
-                    <Edit2 className="w-4 h-4 text-text-secondary" />
+                    <Edit2 className="w-4 h-4 text-text-secondary dark:text-gray-400" />
                   </button>
                   <button
                     onClick={() => removeItem(index)}
-                    className="p-1 hover:bg-background rounded"
+                    className="p-1 hover:bg-background dark:hover:bg-gray-700 rounded"
                   >
                     <Trash2 className="w-4 h-4 text-status-critical" />
                   </button>
@@ -200,13 +200,13 @@ export function CausalAnalysisEditor({
       ))}
 
       {/* Add New Item Form */}
-      <div className="p-4 bg-background/50 border-2 border-dashed border-border rounded-lg">
-        <h4 className="text-sm font-medium text-text-primary mb-3">Add New Analysis</h4>
+      <div className="p-4 bg-background/50 dark:bg-gray-800/50 border-2 border-dashed border-border dark:border-gray-600 rounded-lg">
+        <h4 className="text-sm font-medium text-text-primary dark:text-white mb-3">Add New Analysis</h4>
         <div className="space-y-3">
           <select
             value={newItem.interceptionLayer}
             onChange={(e) => setNewItem({ ...newItem, interceptionLayer: e.target.value as any })}
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-purple"
           >
             {SWISS_CHEESE_LAYERS.map(layer => (
               <option key={layer} value={layer}>{layer.charAt(0).toUpperCase() + layer.slice(1)}</option>
@@ -217,21 +217,21 @@ export function CausalAnalysisEditor({
             value={newItem.cause}
             onChange={(e) => setNewItem({ ...newItem, cause: e.target.value })}
             placeholder="Cause (e.g., Alerting gaps, Architectural weakness)"
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-purple"
           />
           <input
             type="text"
             value={newItem.subCause}
             onChange={(e) => setNewItem({ ...newItem, subCause: e.target.value })}
             placeholder="Sub-cause (e.g., Missing alerts for key metrics)"
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-purple"
           />
           <textarea
             value={newItem.description}
             onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
             placeholder="Description (optional)"
             rows={2}
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple resize-none"
+            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-purple resize-none"
           />
           <button
             onClick={addItem}
@@ -245,7 +245,7 @@ export function CausalAnalysisEditor({
       </div>
 
       {items.length === 0 && (
-        <p className="text-sm text-text-secondary italic text-center py-4">
+        <p className="text-sm text-text-secondary dark:text-gray-400 italic text-center py-4">
           No causal analysis items yet. Add your first analysis above.
         </p>
       )}
@@ -312,12 +312,12 @@ function ActionItemsSection({
   };
 
   return (
-    <div className="mt-4 pt-4 border-t border-border space-y-3">
-      <h5 className="text-xs font-semibold text-text-primary uppercase tracking-wide">Action Items</h5>
+    <div className="mt-4 pt-4 border-t border-border dark:border-gray-700 space-y-3">
+      <h5 className="text-xs font-semibold text-text-primary dark:text-white uppercase tracking-wide">Action Items</h5>
       
       {/* Existing Action Items */}
       {actionItems.map((item, index) => (
-        <div key={index} className="p-3 bg-white rounded border border-border">
+        <div key={index} className="p-3 bg-white dark:bg-gray-800 rounded border border-border dark:border-gray-700">
           {editingIndex === index && editingItem ? (
             <div className="space-y-2">
               <textarea
@@ -325,13 +325,13 @@ function ActionItemsSection({
                 onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
                 placeholder="Describe the action item..."
                 rows={2}
-                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple resize-none"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-purple resize-none"
               />
               <div className="flex gap-2">
                 <select
                   value={editingItem.priority}
                   onChange={(e) => setEditingItem({ ...editingItem, priority: e.target.value as any })}
-                  className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-purple"
                 >
                   <option value="low">Low Priority</option>
                   <option value="medium">Medium Priority</option>
@@ -340,7 +340,7 @@ function ActionItemsSection({
                 <select
                   value={editingItem.assignedTo || ''}
                   onChange={(e) => setEditingItem({ ...editingItem, assignedTo: e.target.value })}
-                  className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+                  className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-purple"
                 >
                   <option value="">Assign to...</option>
                   {users.map(user => (
@@ -357,7 +357,7 @@ function ActionItemsSection({
                 </button>
                 <button
                   onClick={cancelEdit}
-                  className="px-3 py-1 border border-border text-text-secondary rounded text-sm hover:bg-background"
+                  className="px-3 py-1 border border-border dark:border-gray-600 text-text-secondary dark:text-gray-300 rounded text-sm hover:bg-background dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>
@@ -366,7 +366,7 @@ function ActionItemsSection({
           ) : (
             <div className="flex items-start gap-3">
               <div className="flex-1">
-                <p className="text-sm text-text-primary">{item.description}</p>
+                <p className="text-sm text-text-primary dark:text-white">{item.description}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`inline-block px-2 py-0.5 text-xs rounded ${
                     item.priority === 'high' ? 'bg-status-critical/10 text-status-critical' :
@@ -376,7 +376,7 @@ function ActionItemsSection({
                     {item.priority} priority
                   </span>
                   {item.assignedToName && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
                       <User className="w-3 h-3" />
                       {item.assignedToName}
                     </span>
@@ -386,13 +386,13 @@ function ActionItemsSection({
               <div className="flex gap-1">
                 <button
                   onClick={() => startEdit(index, item)}
-                  className="p-1 hover:bg-background rounded"
+                  className="p-1 hover:bg-background dark:hover:bg-gray-700 rounded"
                 >
-                  <Edit2 className="w-4 h-4 text-text-secondary" />
+                  <Edit2 className="w-4 h-4 text-text-secondary dark:text-gray-400" />
                 </button>
                 <button
                   onClick={() => onRemove(index)}
-                  className="p-1 hover:bg-background rounded"
+                  className="p-1 hover:bg-background dark:hover:bg-gray-700 rounded"
                 >
                   <Trash2 className="w-4 h-4 text-status-critical" />
                 </button>
@@ -403,20 +403,20 @@ function ActionItemsSection({
       ))}
 
       {/* Add New Action Item */}
-      <div className="p-3 bg-white/50 border border-dashed border-border rounded-lg">
+      <div className="p-3 bg-white/50 dark:bg-gray-800/50 border border-dashed border-border dark:border-gray-600 rounded-lg">
         <div className="space-y-2">
           <textarea
             value={newActionItem.description}
             onChange={(e) => setNewActionItem({ ...newActionItem, description: e.target.value })}
             placeholder="Describe the action item..."
             rows={2}
-            className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple resize-none"
+            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-purple resize-none"
           />
           <div className="flex gap-2">
             <select
               value={newActionItem.priority}
               onChange={(e) => setNewActionItem({ ...newActionItem, priority: e.target.value as any })}
-              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+              className="px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-purple"
             >
               <option value="low">Low Priority</option>
               <option value="medium">Medium Priority</option>
@@ -425,7 +425,7 @@ function ActionItemsSection({
             <select
               value={newActionItem.assignedTo || ''}
               onChange={(e) => setNewActionItem({ ...newActionItem, assignedTo: e.target.value })}
-              className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+              className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-border dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent-purple"
             >
               <option value="">Assign to...</option>
               {users.map(user => (
@@ -445,7 +445,7 @@ function ActionItemsSection({
       </div>
 
       {actionItems.length === 0 && (
-        <p className="text-xs text-text-secondary italic text-center py-2">
+        <p className="text-xs text-text-secondary dark:text-gray-400 italic text-center py-2">
           No action items yet. Add action items based on this analysis.
         </p>
       )}

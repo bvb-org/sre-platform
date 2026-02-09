@@ -141,22 +141,22 @@ export function KnowledgeGraphRecommendations({
 
   if (loading) {
     return (
-      <div className="bg-white border border-border rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-accent-purple/10 rounded-lg flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-accent-purple" />
+          <div className="w-10 h-10 bg-accent-purple/10 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-accent-purple dark:text-purple-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-text-primary">
+            <h3 className="text-sm font-semibold text-text-primary dark:text-white">
               AI Knowledge Graph Recommendations
             </h3>
-            <p className="text-xs text-text-secondary">
+            <p className="text-xs text-text-secondary dark:text-gray-400">
               Analyzing similar past incidents...
             </p>
           </div>
         </div>
         <div className="flex items-center justify-center py-8">
-          <RefreshCw className="w-6 h-6 text-accent-purple animate-spin" />
+          <RefreshCw className="w-6 h-6 text-accent-purple dark:text-purple-400 animate-spin" />
         </div>
       </div>
     );
@@ -164,16 +164,16 @@ export function KnowledgeGraphRecommendations({
 
   if (!available) {
     return (
-      <div className="bg-white border border-border rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-            <AlertCircle className="w-5 h-5 text-text-secondary" />
+          <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+            <AlertCircle className="w-5 h-5 text-text-secondary dark:text-gray-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-text-primary">
+            <h3 className="text-sm font-semibold text-text-primary dark:text-white">
               AI Knowledge Graph Recommendations
             </h3>
-            <p className="text-xs text-text-secondary">
+            <p className="text-xs text-text-secondary dark:text-gray-400">
               {message || 'Service not available'}
             </p>
           </div>
@@ -184,16 +184,16 @@ export function KnowledgeGraphRecommendations({
 
   if (error) {
     return (
-      <div className="bg-white border border-border rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-status-critical/10 rounded-lg flex items-center justify-center">
-            <AlertCircle className="w-5 h-5 text-status-critical" />
+          <div className="w-10 h-10 bg-status-critical/10 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+            <AlertCircle className="w-5 h-5 text-status-critical dark:text-red-400" />
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-text-primary">
+            <h3 className="text-sm font-semibold text-text-primary dark:text-white">
               AI Knowledge Graph Recommendations
             </h3>
-            <p className="text-xs text-status-critical">{error}</p>
+            <p className="text-xs text-status-critical dark:text-red-400">{error}</p>
           </div>
           <button
             onClick={handleRefresh}
@@ -208,18 +208,18 @@ export function KnowledgeGraphRecommendations({
   }
 
   return (
-    <div className="bg-white border border-border rounded-lg p-6">
+    <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-accent-purple/10 rounded-lg flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-accent-purple" />
+          <div className="w-10 h-10 bg-accent-purple/10 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-accent-purple dark:text-purple-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-text-primary">
+            <h3 className="text-sm font-semibold text-text-primary dark:text-white">
               AI Knowledge Graph Recommendations
             </h3>
-            <div className="flex items-center gap-2 text-xs text-text-secondary">
+            <div className="flex items-center gap-2 text-xs text-text-secondary dark:text-gray-400">
               {isCached && (
                 <span className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
@@ -249,8 +249,8 @@ export function KnowledgeGraphRecommendations({
       {/* Recommendations List */}
       {recommendations.length === 0 ? (
         <div className="text-center py-8">
-          <Lightbulb className="w-12 h-12 text-text-secondary mx-auto mb-3 opacity-50" />
-          <p className="text-sm text-text-secondary">
+          <Lightbulb className="w-12 h-12 text-text-secondary dark:text-gray-400 mx-auto mb-3 opacity-50" />
+          <p className="text-sm text-text-secondary dark:text-gray-400">
             No similar incidents found yet. Recommendations will appear as more postmortems are published.
           </p>
         </div>
@@ -263,13 +263,13 @@ export function KnowledgeGraphRecommendations({
             return (
               <div
                 key={recId}
-                className="border border-border rounded-lg p-4 hover:border-accent-purple/30 transition-colors"
+                className="border border-border dark:border-gray-700 rounded-lg p-4 hover:border-accent-purple/30 dark:hover:border-purple-700/50 transition-colors"
               >
                 {/* Recommendation Header */}
                 <div className="flex items-start gap-3 mb-2">
                   <div className="flex-shrink-0 mt-0.5">
-                    <div className="w-8 h-8 bg-accent-purple/10 rounded-full flex items-center justify-center">
-                      <Lightbulb className="w-4 h-4 text-accent-purple" />
+                    <div className="w-8 h-8 bg-accent-purple/10 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                      <Lightbulb className="w-4 h-4 text-accent-purple dark:text-purple-400" />
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -296,11 +296,11 @@ export function KnowledgeGraphRecommendations({
                       </div>
                     </div>
                     {rec.title && (
-                      <p className="text-xs text-text-secondary mb-2 line-clamp-1">
+                      <p className="text-xs text-text-secondary dark:text-gray-400 mb-2 line-clamp-1">
                         {rec.title}
                       </p>
                     )}
-                    <p className="text-sm font-medium text-text-primary mb-2">
+                    <p className="text-sm font-medium text-text-primary dark:text-white mb-2">
                       {rec.recommendation}
                     </p>
                     <button
@@ -315,23 +315,23 @@ export function KnowledgeGraphRecommendations({
                 {/* Expanded Details */}
                 {isExpanded && (
                   <div className="mt-3 pl-11 space-y-3">
-                    <div className="bg-background rounded-lg p-3">
-                      <p className="text-sm text-text-primary whitespace-pre-wrap">
+                    <div className="bg-background dark:bg-gray-700 rounded-lg p-3">
+                      <p className="text-sm text-text-primary dark:text-white whitespace-pre-wrap">
                         {rec.details}
                       </p>
                     </div>
                     {rec.actions && rec.actions.length > 0 && (
                       <div>
-                        <p className="text-xs font-semibold text-text-primary mb-2">
+                        <p className="text-xs font-semibold text-text-primary dark:text-white mb-2">
                           Suggested Actions:
                         </p>
                         <ul className="space-y-1">
                           {rec.actions.map((action, actionIdx) => (
                             <li
                               key={actionIdx}
-                              className="text-sm text-text-primary flex items-start gap-2"
+                              className="text-sm text-text-primary dark:text-white flex items-start gap-2"
                             >
-                              <span className="text-accent-purple mt-1">•</span>
+                              <span className="text-accent-purple dark:text-purple-400 mt-1">•</span>
                               <span>{action}</span>
                             </li>
                           ))}
@@ -348,8 +348,8 @@ export function KnowledgeGraphRecommendations({
 
       {/* Footer Info */}
       {recommendations.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-border">
-          <p className="text-xs text-text-secondary">
+        <div className="mt-4 pt-4 border-t border-border dark:border-gray-700">
+          <p className="text-xs text-text-secondary dark:text-gray-400">
             💡 These recommendations are generated by AI based on {recommendations.length} similar past incident{recommendations.length !== 1 ? 's' : ''}.
             They are automatically updated as the incident evolves.
           </p>

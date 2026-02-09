@@ -9,13 +9,13 @@ export function InputField({ label, value, onChange, placeholder }: {
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-text-primary mb-1">{label}</label>
+      <label className="block text-sm font-medium text-text-primary dark:text-white mb-1">{label}</label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+        className="w-full px-3 py-2 border border-border dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
       />
     </div>
   );
@@ -30,13 +30,13 @@ export function TextAreaField({ label, value, onChange, placeholder, rows = 3 }:
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-text-primary mb-1">{label}</label>
+      <label className="block text-sm font-medium text-text-primary dark:text-white mb-1">{label}</label>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple resize-none"
+        className="w-full px-3 py-2 border border-border dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
       />
     </div>
   );
@@ -49,12 +49,12 @@ export function DateTimeField({ label, value, onChange }: {
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-text-primary mb-1">{label}</label>
+      <label className="block text-sm font-medium text-text-primary dark:text-white mb-1">{label}</label>
       <input
         type="datetime-local"
         value={value ? new Date(value).toISOString().slice(0, 16) : ''}
         onChange={(e) => onChange(e.target.value ? new Date(e.target.value).toISOString() : '')}
-        className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+        className="w-full px-3 py-2 border border-border dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
       />
     </div>
   );
@@ -71,9 +71,9 @@ export function CheckboxField({ label, checked, onChange }: {
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="w-4 h-4 text-accent-purple border-border rounded focus:ring-2 focus:ring-accent-purple"
+        className="w-4 h-4 text-accent-purple border-border dark:border-gray-600 rounded focus:ring-2 focus:ring-accent-purple"
       />
-      <span className="text-sm font-medium text-text-primary">{label}</span>
+      <span className="text-sm font-medium text-text-primary dark:text-white">{label}</span>
     </label>
   );
 }
@@ -99,7 +99,7 @@ export function MultiSelectField({ label, value, onChange, placeholder }: {
 
   return (
     <div>
-      <label className="block text-sm font-medium text-text-primary mb-1">{label}</label>
+      <label className="block text-sm font-medium text-text-primary dark:text-white mb-1">{label}</label>
       <div className="flex gap-2 mb-2">
         <input
           type="text"
@@ -112,7 +112,7 @@ export function MultiSelectField({ label, value, onChange, placeholder }: {
             }
           }}
           placeholder={placeholder}
-          className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple"
+          className="flex-1 px-3 py-2 border border-border dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent-purple bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
         />
         <button
           onClick={addItem}
@@ -123,10 +123,10 @@ export function MultiSelectField({ label, value, onChange, placeholder }: {
       </div>
       <div className="flex flex-wrap gap-2">
         {value.map((item, index) => (
-          <span key={index} className="inline-flex items-center gap-1 px-3 py-1 bg-background border border-border rounded-full text-sm">
+          <span key={index} className="inline-flex items-center gap-1 px-3 py-1 bg-background dark:bg-gray-700 border border-border dark:border-gray-600 rounded-full text-sm text-gray-900 dark:text-white">
             <Globe className="w-3 h-3" />
             {item}
-            <button onClick={() => removeItem(item)} className="ml-1 hover:text-status-critical">
+            <button onClick={() => removeItem(item)} className="ml-1 hover:text-status-critical dark:hover:text-red-400">
               <X className="w-3 h-3" />
             </button>
           </span>
@@ -143,14 +143,14 @@ export function SectionCard({ title, icon: Icon, tooltip, children }: {
   children: React.ReactNode 
 }) {
   return (
-    <div className="bg-white border border-border rounded-lg p-6">
+    <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">
       <div className="flex items-center gap-2 mb-4">
-        {Icon && <Icon className="w-5 h-5 text-accent-purple" />}
-        <h3 className="text-lg font-semibold text-text-primary">{title}</h3>
+        {Icon && <Icon className="w-5 h-5 text-accent-purple dark:text-purple-400" />}
+        <h3 className="text-lg font-semibold text-text-primary dark:text-white">{title}</h3>
         {tooltip && (
           <div className="group relative">
-            <Info className="w-4 h-4 text-text-secondary cursor-help" />
-            <div className="absolute left-0 top-6 w-64 bg-gray-900 text-white text-xs rounded p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+            <Info className="w-4 h-4 text-text-secondary dark:text-gray-400 cursor-help" />
+            <div className="absolute left-0 top-6 w-64 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
               {tooltip}
             </div>
           </div>

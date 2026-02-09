@@ -225,8 +225,8 @@ export function RACIMatrix({ incidentId }: RACIMatrixProps) {
 
   if (loading) {
     return (
-      <div className="bg-white border border-border rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-text-primary mb-4">
+      <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">
+        <h3 className="text-sm font-semibold text-text-primary dark:text-white mb-4">
           RACI Matrix
         </h3>
         <div className="flex items-center justify-center py-8">
@@ -238,12 +238,12 @@ export function RACIMatrix({ incidentId }: RACIMatrixProps) {
 
   if (error) {
     return (
-      <div className="bg-white border border-border rounded-lg p-6">
-        <h3 className="text-sm font-semibold text-text-primary mb-4">
+      <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">
+        <h3 className="text-sm font-semibold text-text-primary dark:text-white mb-4">
           RACI Matrix
         </h3>
         <div className="text-center py-8">
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           <button
             onClick={fetchRACIData}
             className="mt-4 px-4 py-2 bg-status-info text-white text-sm rounded-lg hover:bg-blue-600"
@@ -256,12 +256,12 @@ export function RACIMatrix({ incidentId }: RACIMatrixProps) {
   }
 
   return (
-    <div className="bg-white border border-border rounded-lg p-6">
+    <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-text-primary">
+        <h3 className="text-sm font-semibold text-text-primary dark:text-white">
           RACI Matrix
         </h3>
-        <span className="text-xs text-text-secondary">
+        <span className="text-xs text-text-secondary dark:text-gray-400">
           From ServiceNow
         </span>
       </div>
@@ -276,19 +276,19 @@ export function RACIMatrix({ incidentId }: RACIMatrixProps) {
           return (
             <div
               key={role}
-              className={`border ${config.borderColor} rounded-lg overflow-hidden`}
+              className={`border ${config.borderColor} dark:border-gray-700 rounded-lg overflow-hidden`}
             >
               <button
                 onClick={() => toggleSection(role)}
-                className={`w-full ${config.bgColor} px-4 py-3 flex items-center justify-between hover:opacity-80 transition-opacity`}
+                className={`w-full ${config.bgColor} dark:bg-opacity-20 px-4 py-3 flex items-center justify-between hover:opacity-80 transition-opacity`}
               >
                 <div className="flex items-center gap-3">
                   <Icon className={`w-5 h-5 ${config.color}`} />
                   <div className="text-left">
-                    <div className="font-semibold text-sm text-text-primary">
+                    <div className="font-semibold text-sm text-text-primary dark:text-white">
                       {config.label}
                     </div>
-                    <div className="text-xs text-text-secondary">
+                    <div className="text-xs text-text-secondary dark:text-gray-400">
                       {config.description}
                     </div>
                   </div>
@@ -306,9 +306,9 @@ export function RACIMatrix({ incidentId }: RACIMatrixProps) {
               </button>
 
               {isExpanded && (
-                <div className="p-4 bg-white">
+                <div className="p-4 bg-white dark:bg-gray-800">
                   {entries.length === 0 ? (
-                    <p className="text-sm text-text-secondary text-center py-4">
+                    <p className="text-sm text-text-secondary dark:text-gray-400 text-center py-4">
                       No entries found
                     </p>
                   ) : (
@@ -316,9 +316,9 @@ export function RACIMatrix({ incidentId }: RACIMatrixProps) {
                       {entries.map((entry, index) => (
                         <div
                           key={`${entry.sys_id}-${index}`}
-                          className="flex items-start gap-3 p-3 rounded-lg hover:bg-background transition-colors"
+                          className="flex items-start gap-3 p-3 rounded-lg hover:bg-background dark:hover:bg-gray-700 transition-colors"
                         >
-                          <div className={`w-8 h-8 rounded-full ${config.bgColor} flex items-center justify-center flex-shrink-0`}>
+                          <div className={`w-8 h-8 rounded-full ${config.bgColor} dark:bg-opacity-30 flex items-center justify-center flex-shrink-0`}>
                             {entry.type === 'user' ? (
                               <span className={`text-sm font-medium ${config.color}`}>
                                 {entry.name.charAt(0).toUpperCase()}
@@ -328,26 +328,26 @@ export function RACIMatrix({ incidentId }: RACIMatrixProps) {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm text-text-primary">
+                            <div className="font-medium text-sm text-text-primary dark:text-white">
                               {entry.name}
                             </div>
                             {entry.email && (
-                              <div className="text-xs text-text-secondary">
+                              <div className="text-xs text-text-secondary dark:text-gray-400">
                                 {entry.email}
                               </div>
                             )}
                             {entry.title && (
-                              <div className="text-xs text-text-secondary">
+                              <div className="text-xs text-text-secondary dark:text-gray-400">
                                 {entry.title}
                               </div>
                             )}
                             {entry.description && (
-                              <div className="text-xs text-text-secondary mt-1">
+                              <div className="text-xs text-text-secondary dark:text-gray-400 mt-1">
                                 {entry.description}
                               </div>
                             )}
                           </div>
-                          <span className={`text-xs px-2 py-1 rounded ${config.bgColor} ${config.color} font-medium`}>
+                          <span className={`text-xs px-2 py-1 rounded ${config.bgColor} dark:bg-opacity-30 ${config.color} font-medium`}>
                             {entry.type}
                           </span>
                         </div>
@@ -361,8 +361,8 @@ export function RACIMatrix({ incidentId }: RACIMatrixProps) {
         })}
       </div>
 
-      <div className="mt-4 pt-4 border-t border-border">
-        <div className="text-xs text-text-secondary">
+      <div className="mt-4 pt-4 border-t border-border dark:border-gray-700">
+        <div className="text-xs text-text-secondary dark:text-gray-400">
           <p className="font-semibold mb-2">RACI Legend:</p>
           <ul className="space-y-1 ml-4">
             <li><strong>Responsible:</strong> Those who do the work to complete the task</li>
