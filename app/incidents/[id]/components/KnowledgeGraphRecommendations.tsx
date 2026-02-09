@@ -128,9 +128,12 @@ export function KnowledgeGraphRecommendations({
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 0.8) return 'text-status-resolved';
-    if (score >= 0.6) return 'text-status-info';
-    if (score >= 0.4) return 'text-status-warning';
+    // Normalize score to 0-1 range if it's > 1 (legacy data stored as percentages)
+    const normalizedScore = score > 1 ? score / 100 : score;
+    
+    if (normalizedScore >= 0.8) return 'text-status-resolved';
+    if (normalizedScore >= 0.6) return 'text-status-info';
+    if (normalizedScore >= 0.4) return 'text-status-warning';
     return 'text-text-secondary';
   };
 
@@ -291,7 +294,14 @@ export function KnowledgeGraphRecommendations({
                       <div className="flex items-center gap-1 ml-auto">
                         <TrendingUp className={`w-3 h-3 ${getScoreColor(rec.similarityScore)}`} />
                         <span className={`text-xs font-medium ${getScoreColor(rec.similarityScore)}`}>
-                          {(rec.similarityScore * 100).toFixed(0)}% match
+                          {(() => {
+                            // Normalize score: if > 1, assume it's already a percentage (legacy data)
+                            const normalizedScore = rec.similarityScore > 1 
+                              ? rec.similarityScore 
+                              : rec.similarityScore * 100;
+                            // Clamp between 0 and 100
+                            return Math.min(100, Math.max(0, normalizedScore)).toFixed(0);
+                          })()}% match
                         </span>
                       </div>
                     </div>

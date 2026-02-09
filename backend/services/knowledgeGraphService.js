@@ -455,13 +455,22 @@ Return ONLY the JSON array, no other text.`;
                 ? JSON.parse(row.recommendation_text) 
                 : row.recommendation_text;
               
+              // Normalize similarity score (handle legacy data that might be stored as 0-100 instead of 0-1)
+              let similarityScore = parseFloat(row.similarity_score);
+              if (similarityScore > 1) {
+                // Legacy data stored as percentage (0-100), normalize to 0-1
+                similarityScore = similarityScore / 100;
+              }
+              // Clamp to valid range
+              similarityScore = Math.max(0, Math.min(1, similarityScore));
+              
               return {
                 id: row.id,
                 incidentId: row.recommended_incident_id,
                 incidentNumber: row.incident_number,
                 title: row.title,
                 severity: row.severity,
-                similarityScore: parseFloat(row.similarity_score),
+                similarityScore: similarityScore,
                 ...recData, // Spread the full recommendation data (includes details, actions, etc.)
               };
             }),
@@ -552,13 +561,23 @@ Return ONLY the JSON array, no other text.`;
           const similarIncident = similarIncidents.find(
             inc => inc.incidentNumber === rec.referenceIncident
           );
+          
+          // Normalize similarity score (handle any edge cases)
+          let similarityScore = rec.similarityScore || similarIncident?.similarityScore || 0;
+          if (similarityScore > 1) {
+            // If somehow stored as percentage, normalize to 0-1
+            similarityScore = similarityScore / 100;
+          }
+          // Clamp to valid range
+          similarityScore = Math.max(0, Math.min(1, similarityScore));
+          
           return {
             ...rec,
             incidentId: similarIncident?.incidentId,
             incidentNumber: rec.referenceIncident,
             title: similarIncident?.title,
             severity: similarIncident?.severity,
-            similarityScore: rec.similarityScore || similarIncident?.similarityScore,
+            similarityScore: similarityScore,
           };
         }),
       };
