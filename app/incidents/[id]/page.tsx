@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { AlertCircle, ChevronRight, Clock, Users, Link2, Tag, Trash2 } from 'lucide-react';
 import { StatusBadge } from '@/app/components/StatusBadge';
 import { ConfirmationModal } from '@/app/components/ConfirmationModal';
-import { ThemeToggle } from '@/app/components/ThemeToggle';
+import { Navigation } from '@/app/components/Navigation';
 import { formatDuration, formatRelativeTime } from '@/lib/utils';
 import { OverviewTab } from './components/OverviewTab';
 import { InvestigationTab } from './components/InvestigationTab';
@@ -147,14 +147,8 @@ export default function IncidentDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background dark:bg-gray-900">
-        <nav className="border-b border-border dark:border-gray-700 bg-white dark:bg-gray-800">
-          <div className="max-w-content mx-auto px-8 py-4">
-            <Link href="/" className="text-xl font-bold text-text-primary dark:text-white">
-              SRE Platform
-            </Link>
-          </div>
-        </nav>
-        <div className="max-w-content mx-auto px-8 py-12">
+        <Navigation activePage="incidents" />
+        <div className="max-w-7xl mx-auto px-8 py-12">
           <div className="text-center text-text-secondary dark:text-gray-400">Loading incident...</div>
         </div>
       </div>
@@ -164,14 +158,8 @@ export default function IncidentDetailPage() {
   if (error || !incident) {
     return (
       <div className="min-h-screen bg-background dark:bg-gray-900">
-        <nav className="border-b border-border dark:border-gray-700 bg-white dark:bg-gray-800">
-          <div className="max-w-content mx-auto px-8 py-4">
-            <Link href="/" className="text-xl font-bold text-text-primary dark:text-white">
-              SRE Platform
-            </Link>
-          </div>
-        </nav>
-        <div className="max-w-content mx-auto px-8 py-12">
+        <Navigation activePage="incidents" />
+        <div className="max-w-7xl mx-auto px-8 py-12">
           <div className="text-center">
             <AlertCircle className="w-12 h-12 text-status-critical mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-text-primary dark:text-white mb-2">
@@ -192,52 +180,11 @@ export default function IncidentDetailPage() {
 
   return (
     <div className="min-h-screen bg-background dark:bg-gray-900">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-border dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-        <div className="max-w-content mx-auto px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <Link href="/" className="text-xl font-bold text-text-primary dark:text-white">
-                SRE Platform
-              </Link>
-              <div className="flex space-x-6">
-                <Link
-                  href="/incidents"
-                  className="text-sm text-text-secondary dark:text-gray-300 hover:text-text-primary dark:hover:text-white transition-colors"
-                >
-                  Incidents
-                </Link>
-                <Link
-                  href="/postmortems"
-                  className="text-sm text-text-secondary dark:text-gray-300 hover:text-text-primary dark:hover:text-white transition-colors"
-                >
-                  Postmortems
-                </Link>
-                <Link
-                  href="/runbooks"
-                  className="text-sm text-text-secondary dark:text-gray-300 hover:text-text-primary dark:hover:text-white transition-colors"
-                >
-                  Runbooks
-                </Link>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <ThemeToggle />
-              <Link
-                href="/incidents/new"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-status-critical text-white font-semibold rounded-lg hover:bg-red-600 transition-colors shadow-sm"
-              >
-                <AlertCircle className="w-4 h-4" />
-                Declare Major Incident
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation activePage="incidents" />
 
       {/* Breadcrumb */}
       <div className="bg-white dark:bg-gray-800 border-b border-border dark:border-gray-700">
-        <div className="max-w-content mx-auto px-8 py-3">
+        <div className="max-w-7xl mx-auto px-8 py-3">
           <div className="flex items-center text-sm text-text-secondary dark:text-gray-400">
             <Link href="/incidents" className="hover:text-text-primary dark:hover:text-white">
               Incidents
@@ -307,7 +254,7 @@ export default function IncidentDetailPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-content mx-auto px-8 py-8">
+      <div className="max-w-7xl mx-auto px-8 py-8">
         <div className="flex gap-8">
           {/* Left Column - Main Content */}
           <div className="flex-1">

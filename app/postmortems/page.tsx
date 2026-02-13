@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FileText, Clock, CheckCircle, Edit, Eye, AlertCircle } from 'lucide-react';
-import { ThemeToggle } from '@/app/components/ThemeToggle';
+import { Navigation } from '@/app/components/Navigation';
 import { formatRelativeTime } from '@/lib/utils';
 
 type Postmortem = {
@@ -103,48 +103,7 @@ export default function PostmortemsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <Link href="/" className="text-xl font-bold text-gray-900 dark:text-white">
-                SRE Platform
-              </Link>
-              <div className="flex space-x-6">
-                <Link
-                  href="/incidents"
-                  className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                >
-                  Incidents
-                </Link>
-                <Link
-                  href="/postmortems"
-                  className="text-sm font-semibold text-gray-900 dark:text-white"
-                >
-                  Postmortems
-                </Link>
-                <Link
-                  href="/runbooks"
-                  className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                >
-                  Runbooks
-                </Link>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <ThemeToggle />
-              <Link
-                href="/incidents/new"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-sm"
-              >
-                <AlertCircle className="w-4 h-4" />
-                Declare Major Incident
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation activePage="postmortems" />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-8 py-8">
