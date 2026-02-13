@@ -10,13 +10,20 @@ router.get('/', async (req, res) => {
 
     let query = `
       SELECT i.*,
-        json_build_object('id', u.id, 'name', u.name, 'email', u.email) as incident_lead,
-        json_build_object('id', u2.id, 'name', u2.name, 'email', u2.email) as reporter,
         (SELECT COUNT(*) FROM timeline_events WHERE incident_id = i.id) as timeline_events_count,
-        (SELECT COUNT(*) FROM action_items WHERE incident_id = i.id) as action_items_count
+        (SELECT COUNT(*) FROM action_items WHERE incident_id = i.id) as action_items_count,
+        COALESCE(
+          (SELECT json_agg(
+            json_build_object(
+              'roleType', ir.role_type,
+              'user', json_build_object('id', u.id, 'name', u.name, 'email', u.email, 'avatarUrl', u.avatar_url)
+            )
+          ) FROM incident_roles ir
+          JOIN users u ON ir.user_id = u.id
+          WHERE ir.incident_id = i.id AND ir.removed_at IS NULL),
+          '[]'
+        ) as roles
       FROM incidents i
-      LEFT JOIN users u ON i.incident_lead_id = u.id
-      LEFT JOIN users u2 ON i.reporter_id = u2.id
     `;
 
     const params = [];
@@ -30,29 +37,37 @@ router.get('/', async (req, res) => {
     const result = await pool.query(query, params);
     
     // Transform the result to match expected format
-    const incidents = result.rows.map(row => ({
-      id: row.id,
-      incidentNumber: row.incident_number,
-      title: row.title,
-      description: row.description,
-      severity: row.severity,
-      status: row.status,
-      createdAt: row.created_at,
-      detectedAt: row.detected_at,
-      mitigatedAt: row.mitigated_at,
-      resolvedAt: row.resolved_at,
-      closedAt: row.closed_at,
-      problemStatement: row.problem_statement,
-      impact: row.impact,
-      causes: row.causes,
-      stepsToResolve: row.steps_to_resolve,
-      _count: {
-        timelineEvents: parseInt(row.timeline_events_count),
-        actionItems: parseInt(row.action_items_count),
-      },
-      incidentLead: row.incident_lead,
-      reporter: row.reporter,
-    }));
+    const incidents = result.rows.map(row => {
+      const roles = row.roles || [];
+      const incidentLead = roles.find(r => r.roleType === 'incident_lead')?.user || null;
+      const reporter = roles.find(r => r.roleType === 'caller')?.user || null;
+      
+      return {
+        id: row.id,
+        incidentNumber: row.incident_number,
+        title: row.title,
+        description: row.description,
+        severity: row.severity,
+        status: row.status,
+        createdAt: row.created_at,
+        detectedAt: row.detected_at,
+        mitigatedAt: row.mitigated_at,
+        resolvedAt: row.resolved_at,
+        closedAt: row.closed_at,
+        problemStatement: row.problem_statement,
+        impact: row.impact,
+        causes: row.causes,
+        stepsToResolve: row.steps_to_resolve,
+        _count: {
+          timelineEvents: parseInt(row.timeline_events_count),
+          actionItems: parseInt(row.action_items_count),
+        },
+        roles: roles,
+        // Backward compatibility
+        incidentLead: incidentLead,
+        reporter: reporter,
+      };
+    });
 
     res.json(incidents);
   } catch (error) {
@@ -66,7 +81,7 @@ router.post('/', async (req, res) => {
   const client = await pool.connect();
   
   try {
-    const { incidentNumber, title, description, severity, incidentLead, snowSysId } = req.body;
+    const { incidentNumber, title, description, severity, incidentLead: incidentLeadName, snowSysId } = req.body;
 
     // Validate required fields
     if (!incidentNumber || !title || !description || !severity) {
@@ -85,7 +100,7 @@ router.post('/', async (req, res) => {
     if (userResult.rows.length === 0) {
       const insertUser = await client.query(
         'INSERT INTO users (email, name) VALUES ($1, $2) RETURNING *',
-        ['manager@example.com', incidentLead || 'Manager on Duty']
+        ['manager@example.com', incidentLeadName || 'Manager on Duty']
       );
       user = insertUser.rows[0];
     } else {
@@ -104,6 +119,13 @@ router.post('/', async (req, res) => {
     );
 
     const incident = incidentResult.rows[0];
+
+    // Assign incident lead role
+    await client.query(
+      `INSERT INTO incident_roles (incident_id, role_type, user_id, assigned_by_id)
+       VALUES ($1, $2, $3, $4)`,
+      [incident.id, 'incident_lead', user.id, user.id]
+    );
 
     // Create initial timeline events
     await client.query(
@@ -155,17 +177,33 @@ router.post('/', async (req, res) => {
 
     // Fetch complete incident with relations
     const completeIncident = await client.query(
-      `SELECT i.*, 
-        json_build_object('id', u1.id, 'name', u1.name, 'email', u1.email) as incident_lead,
-        json_build_object('id', u2.id, 'name', u2.name, 'email', u2.email) as reporter
+      `SELECT i.*,
+        COALESCE(
+          (SELECT json_agg(
+            json_build_object(
+              'roleType', ir.role_type,
+              'user', json_build_object('id', u.id, 'name', u.name, 'email', u.email, 'avatarUrl', u.avatar_url)
+            )
+          ) FROM incident_roles ir
+          JOIN users u ON ir.user_id = u.id
+          WHERE ir.incident_id = i.id AND ir.removed_at IS NULL),
+          '[]'
+        ) as roles
        FROM incidents i
-       LEFT JOIN users u1 ON i.incident_lead_id = u1.id
-       LEFT JOIN users u2 ON i.reporter_id = u2.id
        WHERE i.id = $1`,
       [incident.id]
     );
 
-    res.status(201).json(completeIncident.rows[0]);
+    const result = completeIncident.rows[0];
+    const roles = result.roles || [];
+    const incidentLead = roles.find(r => r.roleType === 'incident_lead')?.user || null;
+    const reporter = roles.find(r => r.roleType === 'caller')?.user || null;
+
+    res.status(201).json({
+      ...result,
+      incidentLead,
+      reporter,
+    });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error creating incident:', error);
@@ -185,8 +223,6 @@ router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT i.*,
-        json_build_object('id', u1.id, 'name', u1.name, 'email', u1.email, 'avatar_url', u1.avatar_url) as incident_lead,
-        json_build_object('id', u2.id, 'name', u2.name, 'email', u2.email, 'avatar_url', u2.avatar_url) as reporter,
         COALESCE(
           (SELECT json_agg(
             json_build_object(
@@ -208,7 +244,7 @@ router.get('/:id', async (req, res) => {
               'description', ai.description,
               'completed', ai.completed,
               'createdAt', ai.created_at,
-              'assignedTo', CASE WHEN ai.assigned_to_id IS NOT NULL 
+              'assignedTo', CASE WHEN ai.assigned_to_id IS NOT NULL
                 THEN json_build_object('id', u.id, 'name', u.name, 'email', u.email)
                 ELSE NULL END
             ) ORDER BY ai.created_at ASC
@@ -229,10 +265,27 @@ router.get('/:id', async (req, res) => {
           ) FROM incident_services isr
           JOIN runbooks r ON isr.runbook_id = r.id
           WHERE isr.incident_id = i.id), '[]'
-        ) as services
+        ) as services,
+        COALESCE(
+          (SELECT json_agg(
+            json_build_object(
+              'id', ir.id,
+              'roleType', ir.role_type,
+              'user', json_build_object('id', u.id, 'name', u.name, 'email', u.email, 'avatarUrl', u.avatar_url),
+              'assignedAt', ir.assigned_at
+            ) ORDER BY
+              CASE ir.role_type
+                WHEN 'incident_lead' THEN 1
+                WHEN 'dmim' THEN 2
+                WHEN 'caller' THEN 3
+                WHEN 'communications_lead' THEN 4
+                ELSE 5
+              END
+          ) FROM incident_roles ir
+          JOIN users u ON ir.user_id = u.id
+          WHERE ir.incident_id = i.id AND ir.removed_at IS NULL), '[]'
+        ) as roles
        FROM incidents i
-       LEFT JOIN users u1 ON i.incident_lead_id = u1.id
-       LEFT JOIN users u2 ON i.reporter_id = u2.id
        WHERE i.id = $1`,
       [req.params.id]
     );
@@ -242,6 +295,11 @@ router.get('/:id', async (req, res) => {
     }
 
     const incident = result.rows[0];
+    
+    // Extract roles for backward compatibility
+    const roles = incident.roles || [];
+    const incidentLeadUser = roles.find(r => r.roleType === 'incident_lead')?.user || null;
+    const reporterUser = roles.find(r => r.roleType === 'caller')?.user || null;
     
     // Transform to match expected format (snake_case to camelCase)
     const transformed = {
@@ -262,8 +320,10 @@ router.get('/:id', async (req, res) => {
       stepsToResolve: incident.steps_to_resolve,
       snowSysId: incident.snow_sys_id,
       snowNumber: incident.snow_number,
-      incidentLead: incident.incident_lead,
-      reporter: incident.reporter,
+      roles: roles,
+      // Backward compatibility
+      incidentLead: incidentLeadUser,
+      reporter: reporterUser,
       timelineEvents: incident.timeline_events,
       actionItems: incident.action_items,
       services: incident.services,

@@ -32,6 +32,7 @@ app.get('/health', (req, res) => {
 
 // Import routes
 const incidentsRouter = require('./routes/incidents');
+const incidentRolesRouter = require('./routes/incidentRoles');
 const runbooksRouter = require('./routes/runbooks');
 const usersRouter = require('./routes/users');
 const postmortemRouter = require('./routes/postmortem');
@@ -42,6 +43,7 @@ const analyticsRouter = require('./routes/analytics');
 
 // Use routes
 app.use('/api/incidents', incidentsRouter);
+app.use('/api/incidents/:id/roles', incidentRolesRouter);
 app.use('/api/incidents/:id/postmortem', postmortemRouter);
 app.use('/api/incidents/:id/recommendations', knowledgeGraphRouter);
 app.use('/api/runbooks', runbooksRouter);

@@ -166,8 +166,6 @@ router.post('/', async (req, res) => {
       const incidentResult = await pool.query(
         `SELECT
           i.*,
-          il.name as lead_name,
-          r.name as reporter_name,
           COALESCE(
             (SELECT json_agg(timeline_data ORDER BY timeline_data->>'createdAt')
              FROM (
@@ -192,10 +190,18 @@ router.post('/', async (req, res) => {
              LEFT JOIN runbooks rb ON isr.runbook_id = rb.id
              WHERE isr.incident_id = i.id AND rb.id IS NOT NULL
             ), '[]'::json
-          ) as services
+          ) as services,
+          COALESCE(
+            (SELECT json_agg(json_build_object(
+              'roleType', ir.role_type,
+              'userName', u.name
+            ))
+             FROM incident_roles ir
+             JOIN users u ON ir.user_id = u.id
+             WHERE ir.incident_id = i.id AND ir.removed_at IS NULL
+            ), '[]'::json
+          ) as roles
         FROM incidents i
-        LEFT JOIN users il ON i.incident_lead_id = il.id
-        LEFT JOIN users r ON i.reporter_id = r.id
         WHERE i.id = $1`,
         [req.params.id]
       );
@@ -565,8 +571,6 @@ router.post('/generate-chunked', async (req, res) => {
       incidentQuery = `
         SELECT
           i.*,
-          il.name as lead_name,
-          r.name as reporter_name,
           COALESCE(
             (SELECT json_agg(DISTINCT jsonb_build_object(
               'serviceName', rb.service_name,
@@ -576,10 +580,18 @@ router.post('/generate-chunked', async (req, res) => {
              LEFT JOIN runbooks rb ON isr.runbook_id = rb.id
              WHERE isr.incident_id = i.id AND rb.id IS NOT NULL
             ), '[]'::json
-          ) as services
+          ) as services,
+          COALESCE(
+            (SELECT json_agg(json_build_object(
+              'roleType', ir.role_type,
+              'userName', u.name
+            ))
+             FROM incident_roles ir
+             JOIN users u ON ir.user_id = u.id
+             WHERE ir.incident_id = i.id AND ir.removed_at IS NULL
+            ), '[]'::json
+          ) as roles
         FROM incidents i
-        LEFT JOIN users il ON i.incident_lead_id = il.id
-        LEFT JOIN users r ON i.reporter_id = r.id
         WHERE i.id = $1
       `;
     } else if (section === 'mitigation') {
@@ -587,8 +599,6 @@ router.post('/generate-chunked', async (req, res) => {
       incidentQuery = `
         SELECT
           i.*,
-          il.name as lead_name,
-          r.name as reporter_name,
           COALESCE(
             (SELECT json_agg(timeline_data ORDER BY timeline_data->>'createdAt')
              FROM (
@@ -605,10 +615,18 @@ router.post('/generate-chunked', async (req, res) => {
                LIMIT 50
              ) timeline_subquery
             ), '[]'::json
-          ) as timeline_events
+          ) as timeline_events,
+          COALESCE(
+            (SELECT json_agg(json_build_object(
+              'roleType', ir.role_type,
+              'userName', u.name
+            ))
+             FROM incident_roles ir
+             JOIN users u ON ir.user_id = u.id
+             WHERE ir.incident_id = i.id AND ir.removed_at IS NULL
+            ), '[]'::json
+          ) as roles
         FROM incidents i
-        LEFT JOIN users il ON i.incident_lead_id = il.id
-        LEFT JOIN users r ON i.reporter_id = r.id
         WHERE i.id = $1
       `;
     } else if (section === 'causal_analysis') {
@@ -616,8 +634,6 @@ router.post('/generate-chunked', async (req, res) => {
       incidentQuery = `
         SELECT
           i.*,
-          il.name as lead_name,
-          r.name as reporter_name,
           COALESCE(
             (SELECT json_agg(timeline_data ORDER BY timeline_data->>'createdAt')
              FROM (
@@ -644,10 +660,18 @@ router.post('/generate-chunked', async (req, res) => {
              LEFT JOIN runbooks rb ON isr.runbook_id = rb.id
              WHERE isr.incident_id = i.id AND rb.id IS NOT NULL
             ), '[]'::json
-          ) as services
+          ) as services,
+          COALESCE(
+            (SELECT json_agg(json_build_object(
+              'roleType', ir.role_type,
+              'userName', u.name
+            ))
+             FROM incident_roles ir
+             JOIN users u ON ir.user_id = u.id
+             WHERE ir.incident_id = i.id AND ir.removed_at IS NULL
+            ), '[]'::json
+          ) as roles
         FROM incidents i
-        LEFT JOIN users il ON i.incident_lead_id = il.id
-        LEFT JOIN users r ON i.reporter_id = r.id
         WHERE i.id = $1
       `;
     } else {
@@ -1369,6 +1393,19 @@ function parseCausalAnalysis(content) {
 function buildPostmortemPrompt(incident) {
   const timelineEvents = incident.timeline_events || [];
   const services = incident.services || [];
+  const roles = incident.roles || [];
+  
+  // Format roles for display
+  const roleLabels = {
+    'incident_lead': 'Incident Lead',
+    'dmim': 'DMIM',
+    'caller': 'Caller',
+    'communications_lead': 'Communications Lead'
+  };
+  
+  const rolesText = roles.length > 0
+    ? roles.map(r => `- ${roleLabels[r.roleType] || r.roleType}: ${r.userName}`).join('\n')
+    : '- No roles assigned';
 
   return `You are an expert Site Reliability Engineer writing a comprehensive postmortem for a production incident using the Swiss cheese model methodology. Generate a detailed, professional postmortem based on the following incident data:
 
@@ -1378,11 +1415,12 @@ function buildPostmortemPrompt(incident) {
 - Description: ${incident.description}
 - Severity: ${incident.severity}
 - Status: ${incident.status}
-- Incident Lead: ${incident.lead_name || 'Unknown'}
-- Reporter: ${incident.reporter_name || 'Unknown'}
 - Started: ${incident.detected_at}
 - Resolved: ${incident.resolved_at || 'Not yet resolved'}
 - Duration: ${calculateDuration(incident.detected_at, incident.resolved_at)}
+
+**Incident Roles:**
+${rolesText}
 
 **Affected Services:**
 ${services.map(s => `- ${s.serviceName} (Team: ${s.teamName})`).join('\n') || 'None specified'}

@@ -11,6 +11,7 @@ import { formatDuration, formatRelativeTime } from '@/lib/utils';
 import { OverviewTab } from './components/OverviewTab';
 import { InvestigationTab } from './components/InvestigationTab';
 import { PostmortemTab } from './components/PostmortemTab';
+import { RolesManager } from './components/RolesManager';
 
 type Incident = {
   id: string;
@@ -312,38 +313,8 @@ export default function IncidentDetailPage() {
               </p>
             </div>
 
-            {/* Roles */}
-            <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">
-              <h3 className="text-sm font-semibold text-text-primary dark:text-white mb-3">Roles</h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-text-secondary dark:text-gray-400 mb-1">Incident Lead</p>
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-accent-purple/10 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-medium text-accent-purple">
-                        {incident.incidentLead?.name.charAt(0) || 'U'}
-                      </span>
-                    </div>
-                    <span className="text-sm text-text-primary dark:text-white">
-                      {incident.incidentLead?.name || 'Unassigned'}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-text-secondary dark:text-gray-400 mb-1">Reporter</p>
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-status-info/10 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-medium text-status-info">
-                        {incident.reporter?.name.charAt(0) || 'U'}
-                      </span>
-                    </div>
-                    <span className="text-sm text-text-primary dark:text-white">
-                      {incident.reporter?.name || 'Unknown'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Roles - Dynamic Role Management */}
+            <RolesManager incidentId={incident.id} onRoleChange={fetchIncident} />
 
             {/* Custom Fields */}
             <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">

@@ -281,6 +281,45 @@ router.post('/import', async (req, res) => {
         ]
       );
 
+      const incidentId = result.rows[0].id;
+
+      // Assign incident lead role
+      await client.query(
+        `INSERT INTO incident_roles (incident_id, role_type, user_id, assigned_by_id)
+         VALUES ($1, $2, $3, $4)`,
+        [incidentId, 'incident_lead', user.id, user.id]
+      );
+
+      // Handle caller assignment from ServiceNow
+      if (snowIncident.caller_id) {
+        // Try to find or create caller user
+        let callerUser;
+        const callerName = snowIncident.caller_id.display_value || snowIncident.caller_id.value;
+        const callerEmail = snowIncident.caller_id.email || `${callerName.toLowerCase().replace(/\s+/g, '.')}@servicenow.com`;
+        
+        const callerResult = await client.query(
+          'SELECT * FROM users WHERE email = $1',
+          [callerEmail]
+        );
+
+        if (callerResult.rows.length === 0) {
+          const insertCaller = await client.query(
+            'INSERT INTO users (email, name) VALUES ($1, $2) RETURNING *',
+            [callerEmail, callerName]
+          );
+          callerUser = insertCaller.rows[0];
+        } else {
+          callerUser = callerResult.rows[0];
+        }
+
+        // Assign caller role
+        await client.query(
+          `INSERT INTO incident_roles (incident_id, role_type, user_id, assigned_by_id)
+           VALUES ($1, $2, $3, $4)`,
+          [incidentId, 'caller', callerUser.id, user.id]
+        );
+      }
+
       imported.push(mappedIncident.incidentNumber);
 
       // Create initial timeline event
@@ -288,7 +327,7 @@ router.post('/import', async (req, res) => {
         `INSERT INTO timeline_events (incident_id, event_type, description, user_id, metadata)
          VALUES ($1, $2, $3, $4, $5)`,
         [
-          result.rows[0].id,
+          incidentId,
           'imported',
           `Incident imported from ServiceNow: ${mappedIncident.title}`,
           user.id,

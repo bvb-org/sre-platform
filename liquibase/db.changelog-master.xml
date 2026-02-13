@@ -12,5 +12,6 @@
     <include file="changelog/changesets/005-add-postmortem-embeddings-unique-constraint.xml"/>
     <include file="changelog/changesets/006-servicenow-integration.xml"/>
     <include file="changelog/changesets/007-fix-similarity-score-overflow.xml"/>
+    <include file="changelog/changesets/008-incident-roles-schema.xml"/>
 
 </databaseChangeLog>
