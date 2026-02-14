@@ -1,18 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+
+export interface StreamFormData {
+  name: string;
+  streamType: string;
+  hypothesis: string;
+  assignedToId?: string;
+  initialTasks?: Array<{ description: string }>;
+}
 
 interface AddStreamModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: {
-    name: string;
-    streamType: string;
-    hypothesis: string;
-    assignedToId?: string;
-  }) => Promise<void>;
+  onSubmit: (data: StreamFormData) => Promise<void>;
   availableUsers?: Array<{ id: string; name: string; email: string }>;
+  initialData?: Partial<StreamFormData>;
 }
 
 export function AddStreamModal({
@@ -20,12 +24,23 @@ export function AddStreamModal({
   onClose,
   onSubmit,
   availableUsers = [],
+  initialData,
 }: AddStreamModalProps) {
   const [name, setName] = useState('');
   const [streamType, setStreamType] = useState('technical');
   const [hypothesis, setHypothesis] = useState('');
   const [assignedToId, setAssignedToId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Populate form with initial data when modal opens
+  useEffect(() => {
+    if (isOpen && initialData) {
+      setName(initialData.name || '');
+      setStreamType(initialData.streamType || 'technical');
+      setHypothesis(initialData.hypothesis || '');
+      setAssignedToId(initialData.assignedToId || '');
+    }
+  }, [isOpen, initialData]);
 
   if (!isOpen) return null;
 
@@ -40,6 +55,7 @@ export function AddStreamModal({
         streamType,
         hypothesis: hypothesis.trim(),
         assignedToId: assignedToId || undefined,
+        initialTasks: initialData?.initialTasks,
       });
       
       // Reset form
@@ -65,14 +81,24 @@ export function AddStreamModal({
     }
   };
 
+  // Show source badge if this was created from a recommendation
+  const isFromRecommendation = initialData?.hypothesis && initialData?.initialTasks?.length;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full mx-4 max-h-[90vh] overflow-y-auto ${isFromRecommendation ? 'max-w-4xl' : 'max-w-2xl'}`}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Create Activity Stream
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Create Activity Stream
+            </h2>
+            {isFromRecommendation && (
+              <span className="px-2 py-1 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">
+                From AI Recommendation
+              </span>
+            )}
+          </div>
           <button
             onClick={handleClose}
             disabled={isSubmitting}
@@ -140,6 +166,26 @@ export function AddStreamModal({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             />
           </div>
+
+          {/* Pre-populated Tasks (from AI Recommendation) */}
+          {initialData?.initialTasks && initialData.initialTasks.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Suggested Tasks (from AI Recommendation)
+              </label>
+              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3 space-y-2">
+                {initialData.initialTasks.map((task, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-sm">
+                    <span className="text-purple-600 dark:text-purple-400 mt-0.5">•</span>
+                    <span className="text-gray-700 dark:text-gray-300">{task.description}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                These tasks will be created with the stream. You can modify or add more after creation.
+              </p>
+            </div>
+          )}
 
           {/* Assign To */}
           {availableUsers.length > 0 && (

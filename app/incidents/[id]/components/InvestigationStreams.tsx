@@ -55,9 +55,10 @@ type Stream = {
 
 interface InvestigationStreamsProps {
   incidentId: string;
+  refreshTrigger?: number; // Used to trigger a refresh from parent
 }
 
-export function InvestigationStreams({ incidentId }: InvestigationStreamsProps) {
+export function InvestigationStreams({ incidentId, refreshTrigger }: InvestigationStreamsProps) {
   const [streams, setStreams] = useState<Stream[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddStreamModalOpen, setIsAddStreamModalOpen] = useState(false);
@@ -67,7 +68,7 @@ export function InvestigationStreams({ incidentId }: InvestigationStreamsProps) 
   useEffect(() => {
     fetchStreams();
     fetchUsers();
-  }, [incidentId]);
+  }, [incidentId, refreshTrigger]); // Added refreshTrigger to dependencies
 
   const fetchStreams = async () => {
     try {

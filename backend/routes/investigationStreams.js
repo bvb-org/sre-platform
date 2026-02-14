@@ -100,7 +100,14 @@ router.post('/:incidentId/streams', async (req, res) => {
   
   try {
     const { incidentId } = req.params;
-    const { name, streamType = 'technical', hypothesis, assignedToId, priority = 0 } = req.body;
+    const {
+      name,
+      streamType = 'technical',
+      hypothesis,
+      assignedToId,
+      priority = 0,
+      initialTasks = []
+    } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Stream name is required' });
@@ -137,6 +144,21 @@ router.post('/:incidentId/streams', async (req, res) => {
 
     const stream = streamResult.rows[0];
 
+    // Create initial tasks if provided (from AI recommendations)
+    const createdTasks = [];
+    if (initialTasks && initialTasks.length > 0) {
+      for (let i = 0; i < initialTasks.length; i++) {
+        const task = initialTasks[i];
+        const taskResult = await client.query(
+          `INSERT INTO stream_tasks (stream_id, description, order_index, created_at)
+           VALUES ($1, $2, $3, NOW())
+           RETURNING *`,
+          [stream.id, task.description, i]
+        );
+        createdTasks.push(taskResult.rows[0]);
+      }
+    }
+
     // Create a timeline event
     await client.query(
       `INSERT INTO timeline_events (incident_id, event_type, description, user_id, metadata)
@@ -146,7 +168,12 @@ router.post('/:incidentId/streams', async (req, res) => {
         'update',
         `Investigation stream created: ${name}`,
         user.id,
-        JSON.stringify({ streamId: stream.id, streamType })
+        JSON.stringify({
+          streamId: stream.id,
+          streamType,
+          initialTaskCount: createdTasks.length,
+          source: initialTasks.length > 0 ? 'ai-recommendation' : 'manual'
+        })
       ]
     );
 
@@ -154,7 +181,7 @@ router.post('/:incidentId/streams', async (req, res) => {
 
     // Fetch complete stream with relations
     const completeStream = await pool.query(
-      `SELECT 
+      `SELECT
         s.*,
         json_build_object('id', u.id, 'name', u.name, 'email', u.email, 'avatarUrl', u.avatar_url) as assigned_to,
         json_build_object('id', creator.id, 'name', creator.name, 'email', creator.email) as created_by
@@ -166,6 +193,18 @@ router.post('/:incidentId/streams', async (req, res) => {
     );
 
     const result = completeStream.rows[0];
+    
+    // Transform tasks to include user info
+    const tasksWithUsers = createdTasks.map(task => ({
+      id: task.id,
+      description: task.description,
+      completed: task.completed,
+      orderIndex: task.order_index,
+      createdAt: task.created_at,
+      completedAt: task.completed_at,
+      assignedTo: null,
+      completedBy: null
+    }));
     
     res.status(201).json({
       id: result.id,
@@ -181,7 +220,7 @@ router.post('/:incidentId/streams', async (req, res) => {
       completedAt: result.completed_at,
       createdBy: result.created_by,
       metadata: result.metadata,
-      tasks: [],
+      tasks: tasksWithUsers,
       findings: [],
     });
   } catch (error) {
