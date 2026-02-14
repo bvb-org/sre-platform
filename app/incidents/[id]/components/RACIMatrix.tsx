@@ -288,9 +288,6 @@ export function RACIMatrix({ incidentId }: RACIMatrixProps) {
                     <div className="font-semibold text-sm text-text-primary dark:text-white">
                       {config.label}
                     </div>
-                    <div className="text-xs text-text-secondary dark:text-gray-400">
-                      {config.description}
-                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -361,17 +358,6 @@ export function RACIMatrix({ incidentId }: RACIMatrixProps) {
         })}
       </div>
 
-      <div className="mt-4 pt-4 border-t border-border dark:border-gray-700">
-        <div className="text-xs text-text-secondary dark:text-gray-400">
-          <p className="font-semibold mb-2">RACI Legend:</p>
-          <ul className="space-y-1 ml-4">
-            <li><strong>Responsible:</strong> Those who do the work to complete the task</li>
-            <li><strong>Accountable:</strong> The one ultimately answerable for the correct completion</li>
-            <li><strong>Consulted:</strong> Those whose opinions are sought</li>
-            <li><strong>Informed:</strong> Those who are kept up-to-date on progress</li>
-          </ul>
-        </div>
-      </div>
     </div>
   );
 }

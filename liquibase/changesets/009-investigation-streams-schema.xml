@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="009-investigation-streams-schema" author="watchtower">
+        
+        <!-- Investigation Streams Table -->
+        <createTable tableName="investigation_streams">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="incident_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_stream_incident" 
+                           references="incidents(id)" deleteCascade="true"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="stream_type" type="VARCHAR(50)" defaultValue="technical">
+                <constraints nullable="false"/>
+            </column>
+            <column name="hypothesis" type="TEXT"/>
+            <column name="status" type="VARCHAR(50)" defaultValue="active">
+                <constraints nullable="false"/>
+            </column>
+            <column name="priority" type="INTEGER" defaultValue="0"/>
+            <column name="assigned_to_id" type="UUID">
+                <constraints foreignKeyName="fk_stream_assigned_to" 
+                           references="users(id)" deleteCascade="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="started_at" type="TIMESTAMP"/>
+            <column name="completed_at" type="TIMESTAMP"/>
+            <column name="created_by_id" type="UUID">
+                <constraints foreignKeyName="fk_stream_created_by" 
+                           references="users(id)" deleteCascade="false"/>
+            </column>
+            <column name="metadata" type="JSONB" defaultValue="{}"/>
+        </createTable>
+
+        <!-- Stream Tasks Table -->
+        <createTable tableName="stream_tasks">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="stream_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_task_stream" 
+                           references="investigation_streams(id)" deleteCascade="true"/>
+            </column>
+            <column name="description" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="completed" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assigned_to_id" type="UUID">
+                <constraints foreignKeyName="fk_task_assigned_to" 
+                           references="users(id)" deleteCascade="false"/>
+            </column>
+            <column name="order_index" type="INTEGER" defaultValue="0"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="completed_at" type="TIMESTAMP"/>
+            <column name="completed_by_id" type="UUID">
+                <constraints foreignKeyName="fk_task_completed_by" 
+                           references="users(id)" deleteCascade="false"/>
+            </column>
+        </createTable>
+
+        <!-- Stream Findings Table -->
+        <createTable tableName="stream_findings">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="stream_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_finding_stream" 
+                           references="investigation_streams(id)" deleteCascade="true"/>
+            </column>
+            <column name="finding_type" type="VARCHAR(50)" defaultValue="observation">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by_id" type="UUID">
+                <constraints foreignKeyName="fk_finding_created_by" 
+                           references="users(id)" deleteCascade="false"/>
+            </column>
+            <column name="metadata" type="JSONB" defaultValue="{}"/>
+        </createTable>
+
+        <!-- Indexes for performance -->
+        <createIndex tableName="investigation_streams" indexName="idx_investigation_streams_incident">
+            <column name="incident_id"/>
+        </createIndex>
+
+        <createIndex tableName="investigation_streams" indexName="idx_investigation_streams_status">
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex tableName="stream_tasks" indexName="idx_stream_tasks_stream">
+            <column name="stream_id"/>
+        </createIndex>
+
+        <createIndex tableName="stream_findings" indexName="idx_stream_findings_stream">
+            <column name="stream_id"/>
+        </createIndex>
+
+        <createIndex tableName="stream_findings" indexName="idx_stream_findings_type">
+            <column name="finding_type"/>
+        </createIndex>
+
+    </changeSet>
+
+</databaseChangeLog>

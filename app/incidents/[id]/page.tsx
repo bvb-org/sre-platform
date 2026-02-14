@@ -12,6 +12,7 @@ import { OverviewTab } from './components/OverviewTab';
 import { InvestigationTab } from './components/InvestigationTab';
 import { PostmortemTab } from './components/PostmortemTab';
 import { RolesManager } from './components/RolesManager';
+import { RACIMatrix } from './components/RACIMatrix';
 
 type Incident = {
   id: string;
@@ -315,6 +316,9 @@ export default function IncidentDetailPage() {
 
             {/* Roles - Dynamic Role Management */}
             <RolesManager incidentId={incident.id} onRoleChange={fetchIncident} />
+
+            {/* RACI Matrix */}
+            <RACIMatrix incidentId={incident.id} />
 
             {/* Custom Fields */}
             <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">

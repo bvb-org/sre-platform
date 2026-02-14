@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Send, Circle, AlertCircle, Info, RefreshCw, Pause, Search } from 'lucide-react';
 import { formatTimestamp, formatDate } from '@/lib/utils';
 import { KnowledgeGraphRecommendations } from './KnowledgeGraphRecommendations';
-import { RACIMatrix } from './RACIMatrix';
+import { InvestigationStreams } from './InvestigationStreams';
 
 type TimelineEvent = {
   id: string;
@@ -255,27 +255,12 @@ export function InvestigationTab({ incident, onRefresh }: InvestigationTabProps)
     textareaRef.current?.focus();
   };
 
-  const insertText = (text: string) => {
-    const cursorPosition = textareaRef.current?.selectionStart || 0;
-    const textBeforeCursor = newUpdate.substring(0, cursorPosition);
-    const textAfterCursor = newUpdate.substring(cursorPosition);
-    const lastSlash = textBeforeCursor.lastIndexOf('/');
-
-    const newText =
-      textBeforeCursor.substring(0, lastSlash) +
-      text +
-      textAfterCursor;
-
-    setNewUpdate(newText);
-    textareaRef.current?.focus();
-  };
-
   const submitUpdate = async () => {
     if (!newUpdate.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/incidents/${incident.id}/timeline`, {
+      const response = await fetch(`http://localhost:3001/api/incidents/${incident.id}/timeline`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -303,8 +288,8 @@ export function InvestigationTab({ incident, onRefresh }: InvestigationTabProps)
         incidentStatus={incident.status}
       />
 
-      {/* RACI Matrix */}
-      <RACIMatrix incidentId={incident.id} />
+      {/* Investigation Streams */}
+      <InvestigationStreams incidentId={incident.id} />
 
       {/* Add Update Form */}
       <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">
@@ -598,9 +583,9 @@ export function InvestigationTab({ incident, onRefresh }: InvestigationTabProps)
                       <div className="flex-1 pb-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div 
+                            <div
                               className="text-sm text-text-primary dark:text-white prose prose-sm max-w-none dark:prose-invert"
-                              dangerouslySetInnerHTML={{ 
+                              dangerouslySetInnerHTML={{
                                 __html: event.description.replace(
                                   /\[([^\]]+)\]\(([^)]+)\)/g,
                                   '<a href="$2" class="text-status-info hover:text-blue-600 underline">$1</a>'
