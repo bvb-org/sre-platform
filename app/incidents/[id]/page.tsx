@@ -186,7 +186,7 @@ export default function IncidentDetailPage() {
 
       {/* Breadcrumb */}
       <div className="bg-white dark:bg-gray-800 border-b border-border dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-8 py-3">
+        <div className="max-w-content mx-auto px-8 py-3">
           <div className="flex items-center text-sm text-text-secondary dark:text-gray-400">
             <Link href="/incidents" className="hover:text-text-primary dark:hover:text-white">
               Incidents
@@ -256,7 +256,7 @@ export default function IncidentDetailPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-8 py-8">
+      <div className="max-w-content mx-auto px-8 py-8">
         <div className="flex gap-8">
           {/* Left Column - Main Content */}
           <div className="flex-1">
@@ -272,7 +272,7 @@ export default function IncidentDetailPage() {
           </div>
 
           {/* Right Sidebar - Metadata */}
-          <div className="w-80 space-y-6">
+          <div className="w-sidebar space-y-6">
             {/* Status */}
             <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">
               <h3 className="text-sm font-semibold text-text-primary dark:text-white mb-3">Status</h3>

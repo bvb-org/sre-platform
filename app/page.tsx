@@ -12,7 +12,7 @@ export default function Home() {
     <div className="min-h-screen bg-background dark:bg-gray-900">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 border-b border-border dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-8 py-4">
+        <div className="max-w-content mx-auto px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-8">
               <Link href="/" className="flex items-center gap-3 group">
@@ -55,7 +55,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <main className="max-w-7xl mx-auto px-8 py-12">
+      <main className="max-w-content mx-auto px-8 py-12">
         <div className="text-center space-y-4 mb-16">
           <h2 className="text-5xl font-bold text-text-primary dark:text-white">
             Vigilant Oversight for Your Infrastructure

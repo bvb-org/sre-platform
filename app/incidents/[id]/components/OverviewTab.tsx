@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Sparkles, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { IncidentTimeline } from './IncidentTimeline';
 
 type Incident = {
@@ -112,10 +113,10 @@ export function OverviewTab({ incident, onUpdate, onRefresh }: OverviewTabProps)
 
         {!loadingSummary && !summaryError && incident.aiSummary && (
           <>
-            <div className="prose prose-sm max-w-none">
-              <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+            <div className="prose prose-sm max-w-none dark:prose-invert text-gray-700 dark:text-gray-300">
+              <ReactMarkdown>
                 {incident.aiSummary}
-              </div>
+              </ReactMarkdown>
             </div>
             {incident.aiSummaryGeneratedAt && (
               <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">

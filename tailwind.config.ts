@@ -38,7 +38,7 @@ const config: Config = {
         },
       },
       maxWidth: {
-        'content': '1200px',
+        'content': '1600px',
       },
       width: {
         'sidebar': '320px',

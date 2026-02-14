@@ -323,7 +323,7 @@ export function InvestigationStreams({ incidentId }: InvestigationStreamsProps) 
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {streams.map((stream) => (
               <StreamCard
                 key={stream.id}

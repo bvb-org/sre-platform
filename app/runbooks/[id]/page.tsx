@@ -118,7 +118,7 @@ export default function RunbookDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navigation activePage="runbooks" />
-        <main className="max-w-7xl mx-auto px-8 py-8">
+        <main className="max-w-content mx-auto px-8 py-8">
           <p className="text-gray-600 dark:text-gray-400">Loading runbook...</p>
         </main>
       </div>
@@ -129,7 +129,7 @@ export default function RunbookDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navigation activePage="runbooks" />
-        <main className="max-w-7xl mx-auto px-8 py-8">
+        <main className="max-w-content mx-auto px-8 py-8">
           <p className="text-gray-600 dark:text-gray-400">Runbook not found</p>
         </main>
       </div>
@@ -140,7 +140,7 @@ export default function RunbookDetailPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation activePage="runbooks" />
 
-      <main className="max-w-7xl mx-auto px-8 py-8">
+      <main className="max-w-content mx-auto px-8 py-8">
         {/* Breadcrumb */}
         <div className="mb-6">
           <Link 
