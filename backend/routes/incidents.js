@@ -318,6 +318,8 @@ router.get('/:id', async (req, res) => {
       impact: incident.impact,
       causes: incident.causes,
       stepsToResolve: incident.steps_to_resolve,
+      aiSummary: incident.ai_summary,
+      aiSummaryGeneratedAt: incident.ai_summary_generated_at,
       snowSysId: incident.snow_sys_id,
       snowNumber: incident.snow_number,
       roles: roles,
@@ -730,13 +732,16 @@ router.post('/:id/sync-snow-activities', async (req, res) => {
 
 // POST /api/incidents/:id/summary - Generate AI summary of incident
 router.post('/:id/summary', async (req, res) => {
+  const client = await pool.connect();
+  
   try {
     const { getAIService } = require('../services/aiService');
     const aiService = getAIService();
 
     // Fetch incident details
-    const result = await pool.query(
-      `SELECT 
+    const result = await client.query(
+      `SELECT
+        i.id,
         i.incident_number,
         i.title,
         i.severity,
@@ -761,32 +766,29 @@ router.post('/:id/summary', async (req, res) => {
     const incident = result.rows[0];
 
     // Check if there's enough data to generate a summary
-    const hasData = incident.problem_statement || incident.impact || 
-                    incident.causes || incident.steps_to_resolve;
+    const hasData = incident.problem_statement || incident.impact;
 
     if (!hasData) {
-      return res.json({ 
-        summary: 'No incident details available yet. Please fill in the Problem Statement, Impact, Causes, or Steps to Resolve fields to generate an AI summary.',
+      return res.json({
+        summary: 'No incident details available yet. Please fill in the Problem Statement or Business Impact fields to generate a summary.',
         hasData: false
       });
     }
 
     // Generate AI summary
-    const systemPrompt = `You are an expert SRE (Site Reliability Engineer) analyzing incident reports. 
-Your task is to provide a clear, concise executive summary of the incident based on the available information.
+    const systemPrompt = `You are an expert SRE (Site Reliability Engineer) analyzing incident reports.
+Your task is to provide a clear, concise summary of the incident based on the available information.
 
 Focus on:
 - What happened (in simple terms)
 - The severity and urgency
 - Key impact points
-- Root causes identified
-- Resolution approach
 - Current status
 
 Keep the summary professional, actionable, and easy to understand for both technical and non-technical stakeholders.
 Use 2-3 paragraphs maximum.`;
 
-    const userMessage = `Analyze this incident and provide an executive summary:
+    const userMessage = `Analyze this incident and provide a summary:
 
 **Incident:** ${incident.incident_number} - ${incident.title}
 **Severity:** ${incident.severity}
@@ -797,26 +799,36 @@ ${incident.mitigated_at ? `**Mitigated:** ${new Date(incident.mitigated_at).toLo
 ${incident.resolved_at ? `**Resolved:** ${new Date(incident.resolved_at).toLocaleString()}` : ''}
 
 ${incident.problem_statement ? `**Problem Statement:**\n${incident.problem_statement}\n\n` : ''}
-${incident.impact ? `**Impact:**\n${incident.impact}\n\n` : ''}
-${incident.causes ? `**Causes:**\n${incident.causes}\n\n` : ''}
-${incident.steps_to_resolve ? `**Steps to Resolve:**\n${incident.steps_to_resolve}\n\n` : ''}
+${incident.impact ? `**Business Impact:**\n${incident.impact}\n\n` : ''}
 
-Please provide a clear executive summary that synthesizes this information.`;
+Please provide a clear summary that synthesizes this information.`;
 
     // Combine system and user messages into a single prompt
     const fullPrompt = `${systemPrompt}\n\n${userMessage}`;
 
     const aiResponse = await aiService.generateCompletion(fullPrompt, 2048);
 
-    res.json({ 
+    const generatedAt = new Date();
+
+    // Save the summary to the database
+    await client.query(
+      `UPDATE incidents
+       SET ai_summary = $1, ai_summary_generated_at = $2
+       WHERE id = $3`,
+      [aiResponse.text, generatedAt, incident.id]
+    );
+
+    res.json({
       summary: aiResponse.text,
       hasData: true,
-      generatedAt: new Date().toISOString()
+      generatedAt: generatedAt.toISOString()
     });
 
   } catch (error) {
     console.error('Error generating incident summary:', error);
     res.status(500).json({ error: 'Failed to generate incident summary' });
+  } finally {
+    client.release();
   }
 });
 

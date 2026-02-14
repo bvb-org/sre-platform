@@ -154,7 +154,7 @@ export function StreamCard({
   onUpdateFinding,
   availableUsers,
 }: StreamCardProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [assigningTaskId, setAssigningTaskId] = useState<string | null>(null);

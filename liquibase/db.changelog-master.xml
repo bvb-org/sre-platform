@@ -14,5 +14,6 @@
     <include file="changelog/changesets/007-fix-similarity-score-overflow.xml"/>
     <include file="changelog/changesets/008-incident-roles-schema.xml"/>
     <include file="changelog/changesets/009-investigation-streams-schema.xml"/>
+    <include file="changelog/changesets/010-add-ai-summary-cache.xml"/>
 
 </databaseChangeLog>
