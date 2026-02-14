@@ -89,8 +89,8 @@ router.get('/:incidentId/streams', async (req, res) => {
 
     res.json(streams);
   } catch (error) {
-    console.error('Error fetching investigation streams:', error);
-    res.status(500).json({ error: 'Failed to fetch investigation streams' });
+    console.error('Error fetching activity streams:', error);
+    res.status(500).json({ error: 'Failed to fetch activity streams' });
   }
 });
 
@@ -186,8 +186,8 @@ router.post('/:incidentId/streams', async (req, res) => {
     });
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error creating investigation stream:', error);
-    res.status(500).json({ error: 'Failed to create investigation stream' });
+    console.error('Error creating activity stream:', error);
+    res.status(500).json({ error: 'Failed to create activity stream' });
   } finally {
     client.release();
   }
@@ -319,8 +319,8 @@ router.patch('/:incidentId/streams/:streamId', async (req, res) => {
     });
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error updating investigation stream:', error);
-    res.status(500).json({ error: 'Failed to update investigation stream' });
+    console.error('Error updating activity stream:', error);
+    res.status(500).json({ error: 'Failed to update activity stream' });
   } finally {
     client.release();
   }
@@ -335,8 +335,8 @@ router.delete('/:incidentId/streams/:streamId', async (req, res) => {
     
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting investigation stream:', error);
-    res.status(500).json({ error: 'Failed to delete investigation stream' });
+    console.error('Error deleting activity stream:', error);
+    res.status(500).json({ error: 'Failed to delete activity stream' });
   }
 });
 

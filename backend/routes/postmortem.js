@@ -705,13 +705,13 @@ router.post('/generate-chunked', async (req, res) => {
     
     if (section === 'business_impact') {
       prompt = buildBusinessImpactPrompt(incident);
-      maxTokens = 1024;
+      maxTokens = 2048; // Increased from 1024 to allow more detailed descriptions
     } else if (section === 'mitigation') {
       prompt = buildMitigationPrompt(incident);
-      maxTokens = 2048;
+      maxTokens = 4096; // Increased from 2048 to prevent mid-sentence truncation
     } else if (section === 'causal_analysis') {
       prompt = buildCausalAnalysisPrompt(incident);
-      maxTokens = 4096;
+      maxTokens = 6144; // Increased from 4096 to allow more comprehensive analysis
     }
     
     const promptLength = prompt.length;
@@ -733,17 +733,49 @@ router.post('/generate-chunked', async (req, res) => {
     console.log('[DEBUG] AI response received, length:', generatedContent.length);
     console.log('[DIAGNOSTIC] Response tokens used:', aiResult.usage?.outputTokens || 'unknown');
     console.log('[DIAGNOSTIC] Input tokens used:', aiResult.usage?.inputTokens || 'unknown');
+    console.log('[DIAGNOSTIC] Max tokens requested:', maxTokens);
+    
+    // Check if response was likely truncated (within 5% of max tokens)
+    const outputTokens = aiResult.usage?.outputTokens || 0;
+    const truncationThreshold = maxTokens * 0.95;
+    const wasTruncated = outputTokens >= truncationThreshold;
+    
+    console.log('[DIAGNOSTIC] Was response truncated?', wasTruncated ? 'LIKELY YES' : 'NO');
+    if (wasTruncated) {
+      console.warn('[WARNING] Response may be truncated! Output tokens:', outputTokens, 'Max:', maxTokens);
+    }
+    console.log('[DIAGNOSTIC] First 200 chars of response:', generatedContent.substring(0, 200));
+    console.log('[DIAGNOSTIC] Last 200 chars of response:', generatedContent.substring(Math.max(0, generatedContent.length - 200)));
 
     // Parse the section-specific response
     let sectionData;
     if (section === 'business_impact') {
       sectionData = parseBusinessImpact(generatedContent, incident);
+      
+      // Validate that description was captured
+      if (!sectionData.businessImpactDescription || sectionData.businessImpactDescription.length < 50) {
+        console.warn('[WARNING] Business impact description is missing or too short!');
+        console.warn('[WARNING] Parsed description:', sectionData.businessImpactDescription);
+      }
     } else if (section === 'mitigation') {
-      sectionData = { mitigationDescription: generatedContent.trim() };
+      const trimmedContent = generatedContent.trim();
+      sectionData = { mitigationDescription: trimmedContent };
+      
+      // Check if mitigation seems incomplete (doesn't end with proper punctuation)
+      const lastChar = trimmedContent.slice(-1);
+      if (trimmedContent.length > 0 && !['.', '!', '?'].includes(lastChar)) {
+        console.warn('[WARNING] Mitigation description may be truncated - does not end with punctuation');
+        console.warn('[WARNING] Last 100 chars:', trimmedContent.slice(-100));
+      }
     } else if (section === 'causal_analysis') {
       console.log('[DEBUG] Parsing causal analysis section...');
       sectionData = parseCausalAnalysis(generatedContent);
       console.log('[DEBUG] Parsed sectionData:', JSON.stringify(sectionData, null, 2));
+      
+      // Validate causal analysis
+      if (!sectionData.causalAnalysis || sectionData.causalAnalysis.length === 0) {
+        console.warn('[WARNING] Causal analysis parsing failed - no items extracted');
+      }
     }
 
     // Check if postmortem exists, create if not
@@ -1291,6 +1323,9 @@ Return ONLY the JSON array, no other text or formatting.`;
 }
 
 function parseBusinessImpact(content, incident) {
+  console.log('[DEBUG] parseBusinessImpact - Raw content length:', content.length);
+  console.log('[DEBUG] parseBusinessImpact - First 500 chars:', content.substring(0, 500));
+  
   const sections = {
     businessImpactApplication: null,
     businessImpactStart: null,
@@ -1339,9 +1374,20 @@ function parseBusinessImpact(content, incident) {
     sections.businessImpactDuration = Math.floor((end.getTime() - start.getTime()) / 60000);
   }
   
-  const descMatch = content.match(/Description:\s*([\s\S]*?)(?=\nApplication:|Start Time:|End Time:|Affected Countries:|Regulatory Reporting:|Regulatory Entity:|$)/i);
+  // More flexible description parsing - capture everything after "Description:" until next field or end
+  const descMatch = content.match(/Description:\s*([\s\S]*?)(?=\n(?:Application|Start Time|End Time|Affected Countries|Regulatory Reporting|Regulatory Entity):|$)/i);
   if (descMatch) {
     sections.businessImpactDescription = descMatch[1].trim();
+    console.log('[DEBUG] parseBusinessImpact - Description found, length:', sections.businessImpactDescription.length);
+  } else {
+    // Fallback: try to find description without strict field boundaries
+    const fallbackMatch = content.match(/Description:\s*([\s\S]+?)(?=\n[A-Z][a-z]+\s*:|$)/i);
+    if (fallbackMatch) {
+      sections.businessImpactDescription = fallbackMatch[1].trim();
+      console.log('[DEBUG] parseBusinessImpact - Used fallback description parsing, length:', sections.businessImpactDescription.length);
+    } else {
+      console.log('[DEBUG] parseBusinessImpact - Description NOT found in content');
+    }
   }
   
   const countriesMatch = content.match(/Affected Countries:\s*(\[[\s\S]*?\])/i);
@@ -1623,9 +1669,17 @@ function parsePostmortemSections(content, incident) {
       sections.businessImpactDuration = Math.floor((end.getTime() - start.getTime()) / 60000);
     }
     
-    const descMatch = impactText.match(/Description:\s*([\s\S]*?)(?=\nApplication:|Start Time:|End Time:|Affected Countries:|Regulatory Reporting:|Regulatory Entity:|\[|$)/i);
+    // More flexible description parsing - capture everything after "Description:" until next field or end
+    const descMatch = impactText.match(/Description:\s*([\s\S]*?)(?=\n(?:Application|Start Time|End Time|Affected Countries|Regulatory Reporting|Regulatory Entity):|$)/i);
     if (descMatch) {
       sections.businessImpactDescription = descMatch[1].trim();
+    } else {
+      // Fallback: try to find description without strict field boundaries
+      const fallbackMatch = impactText.match(/Description:\s*([\s\S]+?)(?=\n[A-Z][a-z]+\s*:|$)/i);
+      if (fallbackMatch) {
+        sections.businessImpactDescription = fallbackMatch[1].trim();
+        console.log('[DEBUG] parsePostmortemSections - Used fallback description parsing');
+      }
     }
     
     const countriesMatch = impactText.match(/Affected Countries:\s*(\[[\s\S]*?\])/i);

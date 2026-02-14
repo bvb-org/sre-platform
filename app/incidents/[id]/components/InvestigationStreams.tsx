@@ -136,7 +136,7 @@ export function InvestigationStreams({ incidentId }: InvestigationStreamsProps) 
   };
 
   const handleDeleteStream = async (streamId: string) => {
-    if (!confirm('Are you sure you want to delete this investigation stream?')) {
+    if (!confirm('Are you sure you want to delete this activity stream?')) {
       return;
     }
 
@@ -295,11 +295,11 @@ export function InvestigationStreams({ incidentId }: InvestigationStreamsProps) 
       {/* Root Cause Summary */}
       <RootCauseSummary streams={streams} />
 
-      {/* Investigation Streams */}
+      {/* Activity Streams */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-            Investigation Streams
+            Activity Streams
           </h3>
           <button
             onClick={() => setIsAddStreamModalOpen(true)}
@@ -313,7 +313,7 @@ export function InvestigationStreams({ incidentId }: InvestigationStreamsProps) 
         {streams.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              No investigation streams yet. Create one to start tracking your investigation.
+              No activity streams yet. Create one to start tracking your investigation.
             </p>
             <button
               onClick={() => setIsAddStreamModalOpen(true)}

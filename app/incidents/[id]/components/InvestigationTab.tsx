@@ -288,7 +288,7 @@ export function InvestigationTab({ incident, onRefresh }: InvestigationTabProps)
         incidentStatus={incident.status}
       />
 
-      {/* Investigation Streams */}
+      {/* Activity Streams */}
       <InvestigationStreams incidentId={incident.id} />
 
       {/* Add Update Form */}

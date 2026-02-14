@@ -7,7 +7,7 @@
 
     <changeSet id="009-investigation-streams-schema" author="watchtower">
         
-        <!-- Investigation Streams Table -->
+        <!-- Activity Streams Table (investigation_streams) -->
         <createTable tableName="investigation_streams">
             <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
                 <constraints primaryKey="true" nullable="false"/>
