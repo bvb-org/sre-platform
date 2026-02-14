@@ -741,7 +741,9 @@ router.post('/generate-chunked', async (req, res) => {
     } else if (section === 'mitigation') {
       sectionData = { mitigationDescription: generatedContent.trim() };
     } else if (section === 'causal_analysis') {
+      console.log('[DEBUG] Parsing causal analysis section...');
       sectionData = parseCausalAnalysis(generatedContent);
+      console.log('[DEBUG] Parsed sectionData:', JSON.stringify(sectionData, null, 2));
     }
 
     // Check if postmortem exists, create if not
@@ -808,6 +810,8 @@ router.post('/generate-chunked', async (req, res) => {
       updates.push(`mitigation_description = $${paramCount++}`);
       values.push(sectionData.mitigationDescription);
     } else if (section === 'causal_analysis') {
+      console.log('[DEBUG] Updating causal_analysis in database...');
+      console.log('[DEBUG] causalAnalysis data to store:', JSON.stringify(sectionData.causalAnalysis, null, 2));
       updates.push(`causal_analysis = $${paramCount++}`);
       values.push(JSON.stringify(sectionData.causalAnalysis));
     }
@@ -1366,26 +1370,74 @@ function parseBusinessImpact(content, incident) {
 }
 
 function parseCausalAnalysis(content) {
+  console.log('[DEBUG] parseCausalAnalysis - Raw content length:', content.length);
+  console.log('[DEBUG] parseCausalAnalysis - First 500 chars:', content.substring(0, 500));
+  
   let causalText = content.trim();
   
   try {
     // Remove markdown code blocks if present
-    causalText = causalText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    causalText = causalText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    console.log('[DEBUG] parseCausalAnalysis - After removing markdown, length:', causalText.length);
     
-    // Try to find JSON array
-    const jsonMatch = causalText.match(/\[\s*\{[\s\S]*\}\s*\]/);
-    if (jsonMatch) {
-      const causalAnalysis = JSON.parse(jsonMatch[0]);
+    // Try multiple parsing strategies
+    let causalAnalysis = null;
+    
+    // Strategy 1: Direct JSON parse (if content is pure JSON)
+    if (causalText.startsWith('[')) {
+      try {
+        console.log('[DEBUG] parseCausalAnalysis - Attempting direct JSON parse...');
+        causalAnalysis = JSON.parse(causalText);
+        console.log('[DEBUG] parseCausalAnalysis - Direct parse successful, array length:', causalAnalysis.length);
+      } catch (e) {
+        console.log('[DEBUG] parseCausalAnalysis - Direct parse failed:', e.message);
+      }
+    }
+    
+    // Strategy 2: Find JSON array with regex (more flexible pattern)
+    if (!causalAnalysis) {
+      console.log('[DEBUG] parseCausalAnalysis - Attempting regex extraction...');
+      // More flexible regex that handles incomplete closing
+      const jsonMatch = causalText.match(/\[\s*\{[\s\S]*\}\s*\]?/);
+      if (jsonMatch) {
+        let jsonStr = jsonMatch[0];
+        // Ensure it ends with ]
+        if (!jsonStr.trim().endsWith(']')) {
+          jsonStr = jsonStr.trim() + ']';
+        }
+        console.log('[DEBUG] parseCausalAnalysis - Found JSON match, attempting parse...');
+        try {
+          causalAnalysis = JSON.parse(jsonStr);
+          console.log('[DEBUG] parseCausalAnalysis - Regex parse successful, array length:', causalAnalysis.length);
+        } catch (e) {
+          console.log('[DEBUG] parseCausalAnalysis - Regex parse failed:', e.message);
+        }
+      } else {
+        console.log('[DEBUG] parseCausalAnalysis - No JSON match found in content');
+      }
+    }
+    
+    // If we successfully parsed, filter and return
+    if (causalAnalysis && Array.isArray(causalAnalysis)) {
+      const filtered = causalAnalysis.filter(item =>
+        item.interceptionLayer && item.cause && item.description
+      );
+      console.log('[DEBUG] parseCausalAnalysis - After filtering:', filtered.length, 'items');
+      console.log('[DEBUG] parseCausalAnalysis - Filtered items:', JSON.stringify(filtered, null, 2));
+      
       return {
-        causalAnalysis: causalAnalysis.filter(item =>
-          item.interceptionLayer && item.cause && item.description
-        )
+        causalAnalysis: filtered
       };
     }
+    
+    console.log('[DEBUG] parseCausalAnalysis - All parsing strategies failed');
+    console.log('[DEBUG] parseCausalAnalysis - Full cleaned content:', causalText.substring(0, 1000));
   } catch (e) {
-    console.error('Failed to parse causal analysis JSON:', e);
+    console.error('[ERROR] parseCausalAnalysis - Failed to parse causal analysis JSON:', e);
+    console.error('[ERROR] parseCausalAnalysis - Error stack:', e.stack);
   }
   
+  console.log('[DEBUG] parseCausalAnalysis - Returning empty array');
   return { causalAnalysis: [] };
 }
 
