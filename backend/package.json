@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node tests/health.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
