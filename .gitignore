@@ -58,3 +58,6 @@ docker-data/
 google-service-account-key.json
 *-service-account-key.json
 copilot.exe
+
+# Uploaded files (ephemeral - generated at runtime)
+backend/uploads/

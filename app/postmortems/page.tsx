@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FileText, Clock, CheckCircle, Edit, Eye, AlertCircle } from 'lucide-react';
+import { FileText, Clock, CheckCircle, Edit, Eye, AlertCircle, Upload, History } from 'lucide-react';
 import { Navigation } from '@/app/components/Navigation';
 import { formatRelativeTime } from '@/lib/utils';
+import ImportUploadModal from './components/ImportUploadModal';
 
 type Postmortem = {
   id: string;
@@ -29,9 +31,11 @@ type Postmortem = {
 };
 
 export default function PostmortemsPage() {
+  const router = useRouter();
   const [postmortems, setPostmortems] = useState<Postmortem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     fetchPostmortems();
@@ -114,6 +118,22 @@ export default function PostmortemsPage() {
             <p className="text-gray-600 dark:text-gray-300 mt-2">
               Review and analyze incident postmortems
             </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/postmortems/import"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+            >
+              <History className="w-4 h-4" />
+              Import History
+            </Link>
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              <Upload className="w-4 h-4" />
+              Import
+            </button>
           </div>
         </div>
 
@@ -277,6 +297,16 @@ export default function PostmortemsPage() {
           </div>
         )}
       </main>
+
+      {/* Import Modal */}
+      <ImportUploadModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onUploadComplete={(sessionId) => {
+          setShowImportModal(false);
+          router.push(`/postmortems/import?session=${sessionId}`);
+        }}
+      />
     </div>
   );
 }

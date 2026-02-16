@@ -15,5 +15,7 @@
     <include file="changelog/changesets/008-incident-roles-schema.xml"/>
     <include file="changelog/changesets/009-investigation-streams-schema.xml"/>
     <include file="changelog/changesets/010-add-ai-summary-cache.xml"/>
+    <include file="changelog/changesets/011-bulk-import-schema.xml"/>
+    <include file="changelog/changesets/012-fix-bulk-import-fk-cascade.xml"/>
 
 </databaseChangeLog>

@@ -176,6 +176,7 @@ class AIService {
 
     return {
       text,
+      stopReason: message.stop_reason,
       usage: {
         inputTokens: message.usage?.input_tokens || 0,
         outputTokens: message.usage?.output_tokens || 0,
@@ -195,9 +196,11 @@ class AIService {
     const result = await generativeModel.generateContent(prompt);
     const response = result.response;
     const text = response.candidates[0].content.parts[0].text;
+    const finishReason = response.candidates[0].finishReason;
 
     return {
       text,
+      finishReason,
       usage: {
         inputTokens: response.usageMetadata?.promptTokenCount || 0,
         outputTokens: response.usageMetadata?.candidatesTokenCount || 0,
