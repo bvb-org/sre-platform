@@ -32,11 +32,17 @@ export default function Home() {
                 >
                   Postmortems
                 </Link>
-                <Link 
-                  href="/runbooks" 
+                <Link
+                  href="/runbooks"
                   className="text-sm text-text-secondary dark:text-gray-300 hover:text-text-primary dark:hover:text-white transition-colors"
                 >
                   Runbooks
+                </Link>
+                <Link
+                  href="/calendar"
+                  className="text-sm text-text-secondary dark:text-gray-300 hover:text-text-primary dark:hover:text-white transition-colors"
+                >
+                  Calendar
                 </Link>
               </div>
             </div>

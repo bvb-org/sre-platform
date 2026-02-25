@@ -59,6 +59,7 @@ function validateBackendEnv() {
       'SERVICENOW_USERNAME',
       'SERVICENOW_PASSWORD',
       'LOG_LEVEL',
+      'CALENDAR_API_KEY',
     ],
   });
 }

@@ -6,7 +6,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { WatchtowerLogo } from './WatchtowerLogo';
 
 type NavigationProps = {
-  activePage?: 'incidents' | 'postmortems' | 'runbooks';
+  activePage?: 'incidents' | 'postmortems' | 'runbooks' | 'calendar';
 };
 
 export function Navigation({ activePage }: NavigationProps) {
@@ -51,6 +51,16 @@ export function Navigation({ activePage }: NavigationProps) {
                 }`}
               >
                 Runbooks
+              </Link>
+              <Link
+                href="/calendar"
+                className={`text-sm transition-colors ${
+                  activePage === 'calendar'
+                    ? 'font-semibold text-gray-900 dark:text-white'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Calendar
               </Link>
             </div>
           </div>

@@ -54,6 +54,7 @@ const knowledgeGraphRouter = require('./routes/knowledgeGraph');
 const serviceNowRouter = require('./routes/servicenow');
 const analyticsRouter = require('./routes/analytics');
 const bulkImportRouter = require('./routes/bulkImport');
+const calendarRouter = require('./routes/calendar');
 
 // Use routes
 app.use('/api/incidents', incidentsRouter);
@@ -68,6 +69,7 @@ app.use('/api/knowledge-graph', knowledgeGraphRouter);
 app.use('/api/servicenow', serviceNowRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/bulk-import', bulkImportRouter);
+app.use('/api/calendar', calendarRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

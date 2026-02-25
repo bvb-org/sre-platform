@@ -1,0 +1,76 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Watchtower Change Freeze Check — Azure DevOps Pipeline Snippet
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# SETUP INSTRUCTIONS
+# ──────────────────
+# 1. Start your Cloudflare Tunnel to expose the local Watchtower backend:
+#
+#      cloudflared tunnel run watchtower
+#      # → your backend is now reachable at https://watchtower.yourdomain.com
+#
+# 2. In Azure DevOps → Pipelines → your pipeline → Edit → Variables, add:
+#
+#      WATCHTOWER_API_URL   = https://watchtower.yourdomain.com   (not secret)
+#      WATCHTOWER_API_KEY   = <value of CALENDAR_API_KEY from backend/.env>  (secret ✓)
+#
+# 3. Copy the `jobs` section below into your existing azure-pipelines.yml,
+#    placing the FreezeCheck job BEFORE your deploy job.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Example full pipeline — adapt to your own trigger/jobs as needed:
+
+trigger:
+  - main
+
+variables:
+  # Override these in the Azure DevOps UI (do NOT hardcode secrets here)
+  # WATCHTOWER_API_URL: (set in pipeline variables)
+  # WATCHTOWER_API_KEY: (set as secret in pipeline variables)
+  appName: 'PaymentAPI'
+
+jobs:
+  # ── Job 1: Freeze-check — calls Watchtower API via curl ─────────────────────
+  - job: FreezeCheck
+    displayName: '🔒 Watchtower Change Freeze Check'
+    pool: Default                           # ← self-hosted runner in the Default pool
+    steps:
+      # Calls the Watchtower freeze-check endpoint via curl.
+      # The step FAILS (and blocks the pipeline) if:
+      #   • the HTTP response is not 2xx, OR
+      #   • the response body contains  "frozen": true
+      - script: |
+          set -e
+          RESPONSE=$(curl -sf \
+            -H "X-API-Key: $(WATCHTOWER_API_KEY)" \
+            -H "Accept: application/json" \
+            "$(WATCHTOWER_API_URL)/api/calendar/freeze-check")
+
+          echo "Freeze-check response: $RESPONSE"
+
+          FROZEN=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['frozen'])")
+
+          if [ "$FROZEN" = "True" ]; then
+            echo "##[error]❌ Change freeze is active. Deployment blocked."
+            exit 1
+          fi
+
+          echo "✅ No active freeze. Proceeding with deployment."
+        displayName: 'Call freeze-check endpoint'
+
+  # ── Job 2: Deploy — only runs when FreezeCheck succeeds ─────────────────────
+  - job: Deploy
+    displayName: 'Deploy $(appName)'
+    dependsOn: FreezeCheck
+    condition: succeeded()
+    pool: Default                           # ← self-hosted runner in the Default pool
+    steps:
+      - script: |
+          echo "🚀 Deploying $(appName)..."
+          # Replace this with your actual deployment task, e.g.:
+          # - task: AzureWebApp@1
+          # - task: KubernetesManifest@1
+          # - script: helm upgrade ...
+          echo "✅ Deployment complete."
+        displayName: 'Deploy $(appName)'

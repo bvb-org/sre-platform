@@ -62,6 +62,7 @@ services:
       SERVICENOW_INSTANCE_URL: ${SERVICENOW_INSTANCE_URL}
       SERVICENOW_USERNAME: ${SERVICENOW_USERNAME}
       SERVICENOW_PASSWORD: ${SERVICENOW_PASSWORD}
+      CALENDAR_API_KEY: ${CALENDAR_API_KEY}
     volumes:
       - ./backend:/app
       - /app/node_modules
