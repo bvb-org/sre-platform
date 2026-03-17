@@ -16,7 +16,10 @@
     "docker:seed": "docker compose exec frontend npm run seed",
     "docker:wait": "echo \"⏳ Waiting for services to start (12 seconds)...\" && node -e \"setTimeout(() => {}, 12000)\"",
     "first-run": "npm install && cd backend && npm install && cd .. && npm run setup && npm run docker:up && npm run docker:wait && npm run docker:seed && node scripts/complete.js",
-    "deploy": "npm run docker:up"
+    "deploy": "npm run docker:up",
+    "mcp:build": "cd mcp-server && npm install && cd .. && docker compose build mcp-server",
+    "mcp:logs": "docker compose logs -f mcp-server",
+    "mcp:test": "docker compose exec mcp-server node -e \"import fetch from 'node-fetch'; const res = await fetch('http://backend:3001/api/incidents'); console.log('Backend reachable:', res.status === 200);\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",

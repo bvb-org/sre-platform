@@ -128,6 +128,27 @@ services:
       retries: 3
       start_period: 40s
 
+  # MCP Server (Model Context Protocol)
+  mcp-server:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    container_name: sre-platform-mcp-server
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BACKEND_URL: http://backend:3001
+      NODE_ENV: production
+    volumes:
+      - ./mcp-server:/app
+      - /app/node_modules
+    # MCP servers typically communicate via stdio, not HTTP
+    # So no port exposure needed unless debugging
+    stdin_open: true
+    tty: true
+
   # MinIO (S3-compatible storage) - Optional
   minio:
     image: minio/minio:latest
