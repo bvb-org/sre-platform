@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="013-create-calendar-events-table" author="sre-platform">
+        <createTable tableName="calendar_events">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="title" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text"/>
+            <column name="event_type" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="start_time" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="end_time" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by_id" type="uuid">
+                <constraints foreignKeyName="fk_calendar_events_user" references="users(id)" nullable="true"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="metadata" type="jsonb"/>
+        </createTable>
+
+        <createIndex tableName="calendar_events" indexName="idx_calendar_events_time">
+            <column name="start_time"/>
+            <column name="end_time"/>
+        </createIndex>
+
+        <createIndex tableName="calendar_events" indexName="idx_calendar_events_type">
+            <column name="event_type"/>
+        </createIndex>
+
+        <createIndex tableName="calendar_events" indexName="idx_calendar_events_created_by">
+            <column name="created_by_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

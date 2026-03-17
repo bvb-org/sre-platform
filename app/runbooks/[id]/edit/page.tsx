@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Plus, X, AlertCircle } from "lucide-react";
+import { Navigation } from "@/app/components/Navigation";
 
 interface MonitoringLink {
   name: string;
@@ -145,45 +146,8 @@ export default function EditRunbookPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white shadow-sm">
-          <div className="max-w-7xl mx-auto px-8 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-8">
-                <Link href="/" className="text-xl font-bold text-gray-900">
-                  SRE Platform
-                </Link>
-                <div className="flex space-x-6">
-                  <Link 
-                    href="/incidents" 
-                    className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                  >
-                    Incidents
-                  </Link>
-                  <Link 
-                    href="/postmortems" 
-                    className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                  >
-                    Postmortems
-                  </Link>
-                  <Link 
-                    href="/runbooks" 
-                    className="text-sm font-semibold text-gray-900"
-                  >
-                    Runbooks
-                  </Link>
-                </div>
-              </div>
-              <Link
-                href="/incidents/new"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-sm"
-              >
-                <AlertCircle className="w-4 h-4" />
-                Declare Major Incident
-              </Link>
-            </div>
-          </div>
-        </nav>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Navigation activePage="runbooks" />
         <main className="max-w-4xl mx-auto px-8 py-8">
           <p className="text-gray-600">Loading runbook...</p>
         </main>
@@ -192,45 +156,8 @@ export default function EditRunbookPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <Link href="/" className="text-xl font-bold text-gray-900">
-                SRE Platform
-              </Link>
-              <div className="flex space-x-6">
-                <Link 
-                  href="/incidents" 
-                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  Incidents
-                </Link>
-                <Link 
-                  href="/postmortems" 
-                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  Postmortems
-                </Link>
-                <Link 
-                  href="/runbooks" 
-                  className="text-sm font-semibold text-gray-900"
-                >
-                  Runbooks
-                </Link>
-              </div>
-            </div>
-            <Link
-              href="/incidents/new"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-sm"
-            >
-              <AlertCircle className="w-4 h-4" />
-              Declare Major Incident
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Navigation activePage="runbooks" />
 
       <main className="max-w-4xl mx-auto px-8 py-8">
         <div className="mb-6">

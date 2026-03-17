@@ -10,6 +10,8 @@ An incident.io and rootly.ai-inspired platform for incident management, AI-power
 - 📚 **Service Runbooks** - Centralized repository of service documentation and troubleshooting procedures
 - ⚡ **Real-time Updates** - WebSocket-powered live updates for incident timelines
 - 🐳 **Fully Containerized** - All components run in Docker containers
+- 🏥 **Health Monitoring** - Built-in health checks for all services with automatic recovery
+- 📊 **Structured Logging** - Professional logging system with configurable log levels
 
 ## Architecture
 
@@ -62,7 +64,7 @@ docker compose restart backend   # Restart backend after changes
 docker compose restart frontend  # Restart frontend after changes
 ```
 
-**Note:** Use Docker Desktop to view logs and stop containers.
+**Note:** Use Docker Desktop to view logs and stop containers. All services include health checks for monitoring.
 
 ### Prerequisites
 
@@ -259,9 +261,17 @@ reset. You might want to try:
 • Review connection timeout configuration
 ```
 
+## Documentation
+
+- 📖 [Setup Guide](docs/SETUP.md) - Complete setup instructions
+- 🔌 [API Documentation](backend/API.md) - Backend API reference
+- 🤝 [Contributing Guide](CONTRIBUTING.md) - How to contribute
+- 📝 [Knowledge Graph Setup](docs/KNOWLEDGE_GRAPH_QUICK_START.md) - AI features setup
+- ⚡ [Recent Improvements](IMPROVEMENTS.md) - Latest platform enhancements
+
 ## Contributing
 
-This is a hackathon project. Contributions welcome!
+This is a hackathon project. Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 

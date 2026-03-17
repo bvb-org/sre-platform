@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Lightbulb, RefreshCw, ExternalLink, TrendingUp, AlertCircle, Sparkles, Clock } from 'lucide-react';
+import { Lightbulb, RefreshCw, ExternalLink, TrendingUp, AlertCircle, Sparkles, Clock, Plus, Play } from 'lucide-react';
 
 type Recommendation = {
   id?: string;
@@ -24,16 +24,25 @@ type RecommendationsResponse = {
   recommendations: Recommendation[];
 };
 
+export type RecommendationWithActions = {
+  name: string;
+  streamType: string;
+  hypothesis: string;
+  initialTasks: Array<{ description: string }>;
+};
+
 interface KnowledgeGraphRecommendationsProps {
   incidentId: string;
   incidentStatus: string;
   autoRefreshInterval?: number; // in milliseconds, default 15 minutes
+  onCreateStreamFromRecommendation?: (data: RecommendationWithActions) => void;
 }
 
 export function KnowledgeGraphRecommendations({
   incidentId,
   incidentStatus,
-  autoRefreshInterval = 15 * 60 * 1000 // 15 minutes
+  autoRefreshInterval = 15 * 60 * 1000, // 15 minutes
+  onCreateStreamFromRecommendation,
 }: KnowledgeGraphRecommendationsProps) {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +53,23 @@ export function KnowledgeGraphRecommendations({
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isCached, setIsCached] = useState(false);
   const [expandedRec, setExpandedRec] = useState<string | null>(null);
+
+  // Handler to create stream data from a recommendation
+  const handleCreateStream = useCallback((rec: Recommendation) => {
+    if (!onCreateStreamFromRecommendation) return;
+
+    // Name = recommendation (what to do), Hypothesis = details (why/description)
+    const streamData: RecommendationWithActions = {
+      name: rec.recommendation,
+      streamType: 'technical',
+      hypothesis: rec.details || rec.recommendation,
+      initialTasks: rec.actions
+        ? rec.actions.map(action => ({ description: action }))
+        : [],
+    };
+
+    onCreateStreamFromRecommendation(streamData);
+  }, [onCreateStreamFromRecommendation]);
 
   const fetchRecommendations = useCallback(async (forceRefresh = false) => {
     try {
@@ -151,10 +177,10 @@ export function KnowledgeGraphRecommendations({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-text-primary dark:text-white">
-              AI Knowledge Graph Recommendations
+              Recommendations from previous incidents
             </h3>
             <p className="text-xs text-text-secondary dark:text-gray-400">
-              Analyzing similar past incidents...
+              Looking for relevant previous incidents...
             </p>
           </div>
         </div>
@@ -174,7 +200,7 @@ export function KnowledgeGraphRecommendations({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-text-primary dark:text-white">
-              AI Knowledge Graph Recommendations
+              Recommendations from previous incidents
             </h3>
             <p className="text-xs text-text-secondary dark:text-gray-400">
               {message || 'Service not available'}
@@ -194,7 +220,7 @@ export function KnowledgeGraphRecommendations({
           </div>
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-text-primary dark:text-white">
-              AI Knowledge Graph Recommendations
+              Recommendations from previous incidents
             </h3>
             <p className="text-xs text-status-critical dark:text-red-400">{error}</p>
           </div>
@@ -220,7 +246,7 @@ export function KnowledgeGraphRecommendations({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-text-primary dark:text-white">
-              AI Knowledge Graph Recommendations
+              Recommendations from previous incidents
             </h3>
             <div className="flex items-center gap-2 text-xs text-text-secondary dark:text-gray-400">
               {isCached && (
@@ -235,7 +261,7 @@ export function KnowledgeGraphRecommendations({
                 </span>
               )}
               <span>•</span>
-              <span>Auto-refresh every 15min</span>
+              <span>Click Refresh to update</span>
             </div>
           </div>
         </div>
@@ -254,7 +280,7 @@ export function KnowledgeGraphRecommendations({
         <div className="text-center py-8">
           <Lightbulb className="w-12 h-12 text-text-secondary dark:text-gray-400 mx-auto mb-3 opacity-50" />
           <p className="text-sm text-text-secondary dark:text-gray-400">
-            No similar incidents found yet. Recommendations will appear as more postmortems are published.
+            No relevant previous incidents found yet. Recommendations will appear as postmortems are published.
           </p>
         </div>
       ) : (
@@ -301,7 +327,7 @@ export function KnowledgeGraphRecommendations({
                               : rec.similarityScore * 100;
                             // Clamp between 0 and 100
                             return Math.min(100, Math.max(0, normalizedScore)).toFixed(0);
-                          })()}% match
+                          })()}% similar
                         </span>
                       </div>
                     </div>
@@ -346,6 +372,16 @@ export function KnowledgeGraphRecommendations({
                             </li>
                           ))}
                         </ul>
+                        {/* Create Stream Button */}
+                        {onCreateStreamFromRecommendation && (
+                          <button
+                            onClick={() => handleCreateStream(rec)}
+                            className="mt-3 flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Create Investigation Stream
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -360,8 +396,8 @@ export function KnowledgeGraphRecommendations({
       {recommendations.length > 0 && (
         <div className="mt-4 pt-4 border-t border-border dark:border-gray-700">
           <p className="text-xs text-text-secondary dark:text-gray-400">
-            💡 These recommendations are generated by AI based on {recommendations.length} similar past incident{recommendations.length !== 1 ? 's' : ''}.
-            They are automatically updated as the incident evolves.
+            💡 Based on {recommendations.length} previous incident{recommendations.length !== 1 ? 's' : ''}.
+            Refresh to get updated recommendations.
           </p>
         </div>
       )}

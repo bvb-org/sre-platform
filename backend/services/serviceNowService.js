@@ -192,6 +192,8 @@ class ServiceNowService {
       const params = {
         sysparm_limit: query.limit || 100,
         sysparm_offset: query.offset || 0,
+        sysparm_display_value: 'all', // Get both sys_id and display values
+        sysparm_fields: 'sys_id,number,short_description,description,state,impact,urgency,opened_at,resolved_at,closed_at,work_notes,close_notes,caller_id',
       };
 
       if (query.state) {

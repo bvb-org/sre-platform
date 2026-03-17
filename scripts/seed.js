@@ -1240,6 +1240,818 @@ Network partition between AWS availability zones caused Elasticsearch split-brai
 
     console.log('Created Incident 5 with timeline and action items');
 
+    // ============================================================================
+    // INCIDENT 6: Backup System Failure - Critical Recovery Point Lost
+    // ============================================================================
+    console.log('Creating Incident 6: Backup System Failure...');
+    
+    const incident6Result = await pool.query(
+      `INSERT INTO incidents (
+        incident_number, title, description, severity, status,
+        incident_lead_id, reporter_id, created_at, detected_at,
+        mitigated_at, resolved_at, closed_at, problem_statement, impact, causes, steps_to_resolve
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      ON CONFLICT (incident_number) DO UPDATE SET
+        title = $2, description = $3, severity = $4, status = $5
+      RETURNING *`,
+      [
+        'INC-2025-004',
+        'Backup System Catastrophic Failure - All Recovery Points Lost',
+        'Critical disaster recovery failure when the automated backup system experienced cascading failures, resulting in loss of all database backups for 72 hours. The primary backup system failed, the secondary backup system had been misconfigured for months, and the third (offsite) backup was found to be corrupted. Company would have faced complete data loss in case of a real disaster.',
+        'critical',
+        'resolved',
+        userIds['carol.williams@company.com'],
+        userIds['david.brown@company.com'],
+        '2025-01-28T08:00:00Z',
+        '2025-01-28T08:00:00Z',
+        '2025-01-28T14:30:00Z',
+        '2025-01-29T18:00:00Z',
+        '2025-01-30T12:00:00Z',
+        `At 08:00 UTC on January 28, 2025, our backup monitoring system detected that no database backups had been successfully completed in 72 hours. Investigation revealed a cascading failure across all three backup tiers:
+
+**Primary Backup (pg_dump to S3):**
+- The backup job had been failing silently for 72 hours due to a credential expiration issue
+- The AWS IAM access key used for S3 uploads expired 3 days ago
+- No alerting was configured for backup job failures
+- The monitoring dashboard only checked if the backup script ran, not if it succeeded
+
+**Secondary Backup (continuous WAL archiving):**
+- PostgreSQL continuous archiving to S3 was misconfigured
+- wal_level was set to 'replica' instead of 'archive' (missing critical WAL segments)
+- This had been misconfigured during a database upgrade 6 months ago
+- No monitoring existed to verify WAL archive completeness
+
+**Tertiary Offsite Backup (cross-region):**
+- The cross-region backup replication job had been failing for 2 weeks
+- A network ACL change blocked the replication traffic
+- The backup files appeared to exist but were discovered to be corrupted
+- Last valid offsite backup was 2 weeks old
+
+**What This Meant:**
+If a real disaster had occurred (data center failure, ransomware attack, etc.), the company would have faced:
+- Potential loss of up to 72 hours of data
+- No way to recover the most recent transactions
+- Complete business interruption for an extended period
+- Regulatory compliance violations
+- Massive customer data loss`,
+        `**Customer Impact:**
+        - Potential loss of 72 hours of customer transactions
+        - 847 orders at risk of being permanently lost
+        - Payment transaction records incomplete
+        - Customer profile data potentially unrecoverable
+        - Regulatory compliance (PCI-DSS, GDPR) potentially violated
+
+**Business Impact:**
+- Immediate crisis management activation
+- Emergency backup restoration effort (72+ hours of work)
+- Third-party forensic backup consultant hired ($85,000)
+- Regulatory audit triggered
+- Business continuity plan activated
+- Executive board notification required
+- Potential fines if data loss confirmed
+- Customer trust severely damaged
+
+**Technical Impact:**
+- 72 hours of database backups missing
+- WAL archiving incomplete for 6 months
+- Cross-region backup corrupted for 2 weeks
+- All three backup tiers had failed without detection
+- Backup verification process was inadequate
+- Monitoring gaps across all backup systems
+- Manual restoration of 72 hours of data required
+- 6-person team working around the clock for 3 days`,
+        `**Root Cause:**
+        Multiple backup system failures converged to create a catastrophic scenario where no reliable recovery point existed:
+
+1. **Primary Backup Failure:** AWS IAM credentials expired without rotation monitoring
+2. **Secondary Backup Misconfiguration:** PostgreSQL wal_level incorrectly set during upgrade
+3. **Tertiary Backup Corruption:** Network ACL change blocked replication, causing incomplete backups
+4. **Monitoring Failures:** No alerts for backup job failures, only for job execution
+5. **Verification Gaps:** Backup files existed but were never tested for restore capability
+
+**Contributing Factors:**
+- Backup system had grown organically over 5 years without comprehensive review
+- Different teams managed different backup components with no unified ownership
+- Backup testing was performed quarterly but only on development data
+- Cost optimization efforts had reduced backup retention and frequency
+- Documentation for backup system was outdated and incomplete
+- No chaos testing or backup drills performed in production
+- Alert thresholds were set too loosely (backup could fail for 24h before alerting)
+- Credential rotation was manual and fell through during staff transition`,
+        `**Immediate Response (08:00 - 14:30):**
+        1. Backup failure detected by monitoring at 08:00 UTC
+        2. Emergency war room established, incident declared critical
+        3. All backup systems audited simultaneously (08:30)
+        4. Discovered all three backup tiers had failed (09:00)
+        5. Emergency AWS credential rotation (09:30)
+        6. Fixed WAL archiving configuration (10:00)
+        7. Verified network ACL rules for cross-region replication (10:30)
+        8. Initiated emergency manual backup of current database state (11:00)
+        9. Began forensic analysis of what backup data was recoverable (12:00)
+        10. Engaged third-party backup consultant for assistance (13:00)
+        11. Started rebuilding backup system from scratch (14:00)
+        12. Manual backup completed, verified, and stored in 3 locations (14:30 - MITIGATED)
+
+**Recovery and Verification (14:30 - 18:00 Jan 29):**
+        1. Restored from oldest available backup (2-week-old cross-region backup)
+        2. Applied transaction log replay where possible from WAL archives
+        3. Manually reconstructed 48 hours of data from application logs and customer records
+        4. Verified data consistency across all critical tables
+        5. Validated integrity of restored data with business team
+        6. Confirmed 847 orders manually recoverable from customer communications
+        7. All backup systems rebuilt with proper configuration
+        8. Implemented comprehensive backup verification
+        9. Confirmed no data loss beyond 2-week-old backup (RESOLVED)
+
+**Post-Incident (18:00 Jan 29 - 12:00 Jan 30):**
+        1. Comprehensive backup system redesign initiated
+        2. All backup credentials rotated immediately
+        3. Added real-time backup verification with automated restore tests
+        4. Implemented backup monitoring across all three tiers
+        5. Created runbook for backup system management
+        6. Scheduled quarterly backup drills (including real disaster scenarios)
+        7. Incident closed after final verification (CLOSED)`
+      ]
+    );
+    
+    const incident6Id = incident6Result.rows[0].id;
+    console.log('Created Incident 6:', incident6Result.rows[0].incident_number);
+
+    // Timeline events for Incident 6
+    const incident6Timeline = [
+      { type: 'detected', desc: 'Backup monitoring alert: No successful backups in 72 hours. All backup tiers reporting as "running" but no verification data.', user: 'david.brown@company.com', time: '2025-01-28T08:00:00Z' },
+      { type: 'investigation', desc: 'Emergency war room established. Discovered credential expiration on primary backup, WAL misconfiguration on secondary, and corrupted offsite backup.', user: 'carol.williams@company.com', time: '2025-01-28T08:30:00Z' },
+      { type: 'investigation', desc: 'Confirmed all three backup tiers have failed. This is a catastrophic DR scenario - we have no recoverable backups.', user: 'carol.williams@company.com', time: '2025-01-28T09:00:00Z' },
+      { type: 'action', desc: 'Rotated all AWS credentials for backup system. Primary backup now functional.', user: 'david.brown@company.com', time: '2025-01-28T09:30:00Z' },
+      { type: 'action', desc: 'Fixed PostgreSQL wal_level configuration from replica to archive. WAL archiving now capturing all required segments.', user: 'frank.miller@company.com', time: '2025-01-28T10:00:00Z' },
+      { type: 'action', desc: 'Identified and fixed Network ACL blocking cross-region replication. Restoring offsite backup connectivity.', user: 'frank.miller@company.com', time: '2025-01-28T10:30:00Z' },
+      { type: 'action', desc: 'Initiating emergency manual backup of current production database to establish new baseline.', user: 'carol.williams@company.com', time: '2025-01-28T11:00:00Z' },
+      { type: 'action', desc: 'Engaged third-party backup consultant for forensic analysis and recovery assistance.', user: 'alice.johnson@company.com', time: '2025-01-28T13:00:00Z' },
+      { type: 'action', desc: 'Emergency backup completed and verified in 3 separate locations. New baseline established.', user: 'carol.williams@company.com', time: '2025-01-28T14:30:00Z' },
+      { type: 'mitigated', desc: 'Backup system rebuilt with proper configuration. All three tiers now operational and verified.', user: 'carol.williams@company.com', time: '2025-01-28T14:30:00Z' },
+      { type: 'action', desc: 'Restored from 2-week-old offsite backup. Recovered as much data as possible from WAL archives.', user: 'frank.miller@company.com', time: '2025-01-29T10:00:00Z' },
+      { type: 'action', desc: 'Manually reconstructed 48 hours of transactions from application logs. 847 orders recovered.', user: 'emma.davis@company.com', time: '2025-01-29T16:00:00Z' },
+      { type: 'resolved', desc: 'All data verified consistent. Backup system operational with comprehensive monitoring. Incident resolved.', user: 'carol.williams@company.com', time: '2025-01-29T18:00:00Z' },
+    ];
+
+    for (const event of incident6Timeline) {
+      await pool.query(
+        `INSERT INTO timeline_events (incident_id, event_type, description, user_id, created_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [incident6Id, event.type, event.desc, userIds[event.user], event.time]
+      );
+    }
+
+    // Action items for Incident 6
+    const incident6Actions = [
+      { desc: 'Implement automated credential rotation for all backup system credentials', user: 'david.brown@company.com', completed: true },
+      { desc: 'Add real-time backup verification with automated restore testing', user: 'frank.miller@company.com', completed: true },
+      { desc: 'Create unified backup monitoring dashboard with all three tiers', user: 'frank.miller@company.com', completed: false },
+      { desc: 'Implement backup job success/failure alerts (not just execution alerts)', user: 'david.brown@company.com', completed: true },
+      { desc: 'Schedule quarterly disaster recovery drills including backup restoration', user: 'carol.williams@company.com', completed: true },
+      { desc: 'Document backup system architecture and ownership matrix', user: 'carol.williams@company.com', completed: false },
+      { desc: 'Implement backup redundancy with geographic and architectural diversity', user: 'frank.miller@company.com', completed: false },
+      { desc: 'Add backup verification to CI/CD pipeline for all database changes', user: 'carol.williams@company.com', completed: true },
+    ];
+
+    for (const action of incident6Actions) {
+      await pool.query(
+        `INSERT INTO action_items (incident_id, description, assigned_to_id, completed)
+         VALUES ($1, $2, $3, $4)`,
+        [incident6Id, action.desc, userIds[action.user], action.completed]
+      );
+    }
+
+    // Link services to Incident 6
+    const incident6Services = ['Payment API', 'Order Processing API', 'Billing API', 'User Auth API'];
+    for (const serviceName of incident6Services) {
+      await pool.query(
+        `INSERT INTO incident_services (incident_id, runbook_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [incident6Id, runbookIds[serviceName]]
+      );
+    }
+
+    console.log('Created Incident 6 with timeline and action items');
+
+    // ============================================================================
+    // INCIDENT 7: DNS Failover Failure - Hybrid Cloud DR Test Exposed Gaps
+    // ============================================================================
+    console.log('Creating Incident 7: DNS Failover Failure...');
+    
+    const incident7Result = await pool.query(
+      `INSERT INTO incidents (
+        incident_number, title, description, severity, status,
+        incident_lead_id, reporter_id, created_at, detected_at,
+        mitigated_at, resolved_at, closed_at, problem_statement, impact, causes, steps_to_resolve
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      ON CONFLICT (incident_number) DO UPDATE SET
+        title = $2, description = $3, severity = $4, status = $5
+      RETURNING *`,
+      [
+        'INC-2025-005',
+        'DNS Failover Catastrophic Failure - Hybrid Cloud DR Test Exposed Critical Gaps',
+        'Planned disaster recovery drill revealed critical gaps in the DNS failover system. When testing failover from AWS to on-premises data center, DNS failover either failed to trigger or propagated incorrectly. Only 15% of users were successfully routed to the DR site, while 85% experienced complete service unavailability. The DR site was fully operational but unreachable due to DNS issues.',
+        'high',
+        'resolved',
+        userIds['henry.moore@company.com'],
+        userIds['carol.williams@company.com'],
+        '2025-02-05T02:00:00Z',
+        '2025-02-05T02:00:00Z',
+        '2025-02-05T04:45:00Z',
+        '2025-02-05T08:30:00Z',
+        '2025-02-05T16:00:00Z',
+        `At 02:00 UTC on February 5, 2025, the planned disaster recovery drill for the hybrid cloud architecture revealed catastrophic failures in the DNS failover system. The DR environment was fully operational and ready, but when primary AWS infrastructure was "simulated" as failed, DNS failover either failed to trigger or propagated incorrectly across the internet.
+
+**What Was Being Tested:**
+The quarterly DR drill was designed to verify:
+1. Automatic DNS failover from AWS to on-premises DR site
+2. Database replication from primary RDS to on-premises PostgreSQL
+3. Application auto-scaling in DR environment
+4. Load balancer traffic routing to DR site
+5. Data consistency between primary and DR databases
+
+**What Happened:**
+At 02:00 UTC, the DR drill began:
+1. Primary AWS region was "failed" (simulated via routing changes)
+2. DNS failover should have triggered within 60 seconds
+3. Expected: 100% of traffic routing to DR site within 5 minutes
+4. Actual: DNS failover completely failed
+
+**DNS Failover Issues:**
+- Route 53 health checks were configured incorrectly (checked wrong endpoints)
+- TTL values were set to 24 hours instead of 60 seconds
+- The DNS failover automation had a bug in the failover logic
+- Secondary DNS zone (registrar) was not integrated with Route 53
+- Geo-routing policy was not configured for DR failover
+- Some DNS records had "Fail" flag but were not actually removed from resolution
+
+**Results:**
+- 85% of users received no response or NXDOMAIN errors
+- 15% of users were routed to DR but experienced slow/unreliable service
+- The DR site was fully operational but unreachable
+- Total "outage" duration: 2 hours 45 minutes
+- Drill had to be aborted and rolled back`,
+        `**Customer Impact (Simulated Drill):**
+        - 85% of users would have experienced complete service unavailability
+        - 15% would have experienced degraded service (high latency, errors)
+        - Total "downtime" in real scenario: 2 hours 45 minutes
+        - Customer trust in DR capabilities would be completely eroded
+        - Would have triggered SLA breaches for all enterprise customers
+
+**Business Impact:**
+        - DR drill failure exposed complete inability to failover
+        - Would have resulted in 2+ hours of guaranteed downtime in real disaster
+        - Regulatory compliance (SOC 2, ISO 27001) would be violated
+        - Enterprise customers would have contractual termination rights
+        - Board-level emergency meeting required
+        - $250,000 estimated cost of failed DR response
+        - Insurance claim likely denied due to "unpreparedness"
+        - Competitive advantage eliminated during outage
+
+**Technical Impact:**
+- Route 53 health check configuration fundamentally broken
+- DNS failover automation had multiple critical bugs
+- TTL values made failover impossible (24-hour cache)
+- Secondary DNS not integrated - registrar DNS still pointed to failed site
+- Load balancer DR configuration incomplete
+- Database replication was working but unreachable due to DNS
+- Application DR deployment worked but unreachable
+- Only network layer failover succeeded (routing was fine)
+
+**What Worked:**
+- On-premises DR site was fully provisioned and operational
+- Database replication was within 30 seconds of primary
+- Application containers deployed and running in DR
+- Load balancers configured and ready in DR
+- Network routing between regions was functional
+- Only DNS layer failed`,
+        `**Root Cause:**
+        Multiple failures in the DNS failover system prevented any successful failover:
+
+1. **Incorrect Health Check Configuration:** Route 53 health checks were monitoring /health endpoints that always returned 200 OK regardless of actual service health. The health check URL was wrong.
+
+2. **Excessive TTL Values:** DNS records had 24-hour TTLs, making it impossible to switch quickly. Even if failover triggered, cached records would persist for days.
+
+3. **DNS Failover Logic Bug:** The custom failover automation script had a logic error where it would detect failure but not execute the actual DNS update.
+
+4. **Missing Secondary DNS Integration:** The domain registrar's DNS (secondary) was not connected to Route 53 failover system. When Route 53 failed, traffic still tried to resolve to AWS.
+
+5. **Geo-Routing Not Configured:** Geo-routing was not implemented, so users would be routed to nearest region regardless of health status.
+
+6. **Insufficient Testing:** DR drills previously only tested individual components, never end-to-end DNS failover.
+
+**Contributing Factors:**
+- DNS infrastructure managed by different team than application
+- No documentation on DNS failover architecture
+- Previous DR drills avoided DNS testing due to complexity
+- Assumptions made that "DNS failover just works"
+- TTL values intentionally set high for performance (wrong priority)
+- Health check endpoints tested in isolation, not as system
+- No runbook existed for DNS failover execution
+- Vendor (AWS) support not engaged for failover design review`,
+        `**Immediate Response (02:00 - 04:45):**
+        1. DR drill initiated at scheduled time (02:00 UTC)
+        2. Observed DNS not failing over after 60 seconds (02:01)
+        3. Emergency investigation launched (02:05)
+        4. Discovered Route 53 health checks returning incorrect status (02:15)
+        5. Found TTL values at 24 hours - failover impossible (02:20)
+        6. Identified failover automation script bug (02:35)
+        7. Manual DNS updates required to route to DR site (03:00)
+        8. Some traffic began reaching DR site (03:15)
+        9. Database replication verified and caught up (03:30)
+        10. Application services scaled in DR to handle load (04:00)
+        11. Manual DNS cache flush initiated for major ISPs (04:30)
+        12. 85% of traffic finally reaching DR site (04:45 - MITIGATED)
+
+**Full Resolution (04:45 - 08:30):**
+        1. Fixed Route 53 health checks to monitor correct endpoints (05:00)
+        2. Changed all DNS TTL values to 60 seconds (05:15)
+        3. Fixed failover automation script logic bug (05:30)
+        4. Integrated secondary DNS (registrar) with Route 53 (06:00)
+        5. Implemented proper geo-routing failover policy (06:30)
+        6. Tested DNS failover end-to-end successfully (07:00)
+        7. Verified all services operational in DR (07:30)
+        8. Rolled back to primary AWS region (08:00)
+        9. Full DR drill repeated with successful failover (08:30 - RESOLVED)
+
+**Post-Incident (08:30 - 16:00):**
+        1. Comprehensive DNS failover runbook created
+        2. Automated health check verification added to monitoring
+        3. TTL values changed and documented in standard procedures
+        4. All DR drills now mandated to include DNS failover testing
+        5. AWS support engaged for DNS failover architecture review
+        6. Incident closed with full DR capability verified (CLOSED)`
+      ]
+    );
+    
+    const incident7Id = incident7Result.rows[0].id;
+    console.log('Created Incident 7:', incident7Result.rows[0].incident_number);
+
+    // Timeline events for Incident 7
+    const incident7Timeline = [
+      { type: 'detected', desc: 'DR drill initiated. Primary region "failed" as planned. DNS failover expected to trigger within 60 seconds.', user: 'carol.williams@company.com', time: '2025-02-05T02:00:00Z' },
+      { type: 'investigation', desc: 'DNS failover not triggering after 2 minutes. Emergency investigation launched.', user: 'henry.moore@company.com', time: '2025-02-05T02:05:00Z' },
+      { type: 'investigation', desc: 'Route 53 health checks returning 200 OK even for failed endpoints. Health check configuration is wrong.', user: 'jack.anderson@company.com', time: '2025-02-05T02:15:00Z' },
+      { type: 'investigation', desc: 'DNS TTL values are 24 hours. Even if failover triggers, cached records will persist for days.', user: 'henry.moore@company.com', time: '2025-02-05T02:20:00Z' },
+      { type: 'investigation', desc: 'Found critical bug in failover automation script - detects failure but does not execute DNS update.', user: 'jack.anderson@company.com', time: '2025-02-05T02:35:00Z' },
+      { type: 'action', desc: 'Initiating manual DNS failover to DR site. Updating Route 53 records directly.', user: 'henry.moore@company.com', time: '2025-02-05T03:00:00Z' },
+      { type: 'action', desc: 'Manual DNS updates propagating. Some traffic reaching DR site, but cache still causing issues.', user: 'henry.moore@company.com', time: '2025-02-05T03:15:00Z' },
+      { type: 'action', desc: 'Database replication verified - DR database is within 30 seconds of primary. Application containers running in DR.', user: 'frank.miller@company.com', time: '2025-02-05T03:30:00Z' },
+      { type: 'action', desc: 'Scaling application services in DR to handle production load. 50% capacity reached.', user: 'frank.miller@company.com', time: '2025-02-05T04:00:00Z' },
+      { type: 'action', desc: 'Initiated manual cache flush with major ISPs. DNS propagation improving.', user: 'henry.moore@company.com', time: '2025-02-05T04:30:00Z' },
+      { type: 'mitigated', desc: '85% of traffic now reaching DR site. All services operational. Manual DNS failover successful.', user: 'henry.moore@company.com', time: '2025-02-05T04:45:00Z' },
+      { type: 'action', desc: 'Fixed Route 53 health checks to monitor correct service health endpoints.', user: 'jack.anderson@company.com', time: '2025-02-05T05:00:00Z' },
+      { type: 'action', desc: 'Changed all DNS TTL values from 24 hours to 60 seconds across all records.', user: 'henry.moore@company.com', time: '2025-02-05T05:15:00Z' },
+      { type: 'action', desc: 'Fixed failover automation script - corrected the logic error that prevented DNS updates.', user: 'jack.anderson@company.com', time: '2025-02-05T05:30:00Z' },
+      { type: 'action', desc: 'Integrated secondary DNS (registrar) with Route 53 failover system.', user: 'henry.moore@company.com', time: '2025-02-05T06:00:00Z' },
+      { type: 'action', desc: 'Implemented geo-routing failover policy for intelligent traffic routing during failures.', user: 'henry.moore@company.com', time: '2025-02-05T06:30:00Z' },
+      { type: 'action', desc: 'Tested DNS failover end-to-end - verified working correctly now.', user: 'jack.anderson@company.com', time: '2025-02-05T07:00:00Z' },
+      { type: 'action', desc: 'All services verified operational in DR. Ready to rollback to primary region.', user: 'frank.miller@company.com', time: '2025-02-05T07:30:00Z' },
+      { type: 'action', desc: 'Rolling back to primary AWS region. Restoring normal DNS configuration.', user: 'henry.moore@company.com', time: '2025-02-05T08:00:00Z' },
+      { type: 'resolved', desc: 'Full DR drill repeated and completed successfully with proper DNS failover. All systems verified.', user: 'henry.moore@company.com', time: '2025-02-05T08:30:00Z' },
+    ];
+
+    for (const event of incident7Timeline) {
+      await pool.query(
+        `INSERT INTO timeline_events (incident_id, event_type, description, user_id, created_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [incident7Id, event.type, event.desc, userIds[event.user], event.time]
+      );
+    }
+
+    // Action items for Incident 7
+    const incident7Actions = [
+      { desc: 'Fix Route 53 health checks to monitor actual service health endpoints', user: 'jack.anderson@company.com', completed: true },
+      { desc: 'Change all DNS TTL values to 60 seconds for fast failover', user: 'henry.moore@company.com', completed: true },
+      { desc: 'Fix failover automation script logic and test thoroughly', user: 'jack.anderson@company.com', completed: true },
+      { desc: 'Integrate secondary DNS (registrar) with primary DNS failover system', user: 'henry.moore@company.com', completed: true },
+      { desc: 'Implement proper geo-routing failover policy', user: 'henry.moore@company.com', completed: true },
+      { desc: 'Create comprehensive DNS failover runbook with step-by-step procedures', user: 'carol.williams@company.com', completed: true },
+      { desc: 'Mandate DNS failover testing in all future DR drills', user: 'carol.williams@company.com', completed: true },
+      { desc: 'Engage AWS support for DNS failover architecture review', user: 'alice.johnson@company.com', completed: false },
+    ];
+
+    for (const action of incident7Actions) {
+      await pool.query(
+        `INSERT INTO action_items (incident_id, description, assigned_to_id, completed)
+         VALUES ($1, $2, $3, $4)`,
+        [incident7Id, action.desc, userIds[action.user], action.completed]
+      );
+    }
+
+    // Link services to Incident 7
+    const incident7Services = ['Payment API', 'User Auth API', 'Order Processing API', 'Search API'];
+    for (const serviceName of incident7Services) {
+      await pool.query(
+        `INSERT INTO incident_services (incident_id, runbook_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [incident7Id, runbookIds[serviceName]]
+      );
+    }
+
+    console.log('Created Incident 7 with timeline and action items');
+
+    // ============================================================================
+    // INCIDENT 8: Canary Deployment Failure - Missing Test Coverage
+    // ============================================================================
+    console.log('Creating Incident 8: Canary Deployment Failure...');
+    
+    const incident8Result = await pool.query(
+      `INSERT INTO incidents (
+        incident_number, title, description, severity, status,
+        incident_lead_id, reporter_id, created_at, detected_at,
+        mitigated_at, resolved_at, closed_at, problem_statement, impact, causes, steps_to_resolve
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      ON CONFLICT (incident_number) DO UPDATE SET
+        title = $2, description = $3, severity = $4, status = $5
+      RETURNING *`,
+      [
+        'INC-2025-006',
+        'Order Processing API Canary Failure - Untested Payment Integration Bug',
+        'Critical production outage caused by Order Processing API v4.2.0 canary deployment that introduced a bug in payment integration logic. The bug was not caught in canary metrics because canary traffic was too small (5%) and the bug only manifested under specific payment conditions. Full rollout proceeded after canary "passed", affecting 100% of orders and causing 100% payment failures for 47 minutes.',
+        'critical',
+        'resolved',
+        userIds['bob.smith@company.com'],
+        userIds['iris.taylor@company.com'],
+        '2025-02-10T14:30:00Z',
+        '2025-02-10T14:30:00Z',
+        '2025-02-10T15:17:00Z',
+        '2025-02-10T16:45:00Z',
+        '2025-02-10T18:00:00Z',
+        `At 14:30 UTC on February 10, 2025, the Order Processing API v4.2.0 was deployed to production using a canary deployment strategy. The deployment passed canary analysis and was promoted to 100% rollout at 15:00 UTC. However, at 14:30 (during canary), a critical bug was introduced that caused payment integration failures.
+
+**The Bug:**
+The v4.2.0 release included a refactored payment integration module that changed how payment requests were constructed. A subtle bug in the new code caused:
+- Payment requests to be constructed with incorrect currency codes for international orders
+- The bug only affected orders where: currency != USD AND payment_method == "credit_card"
+- This represented approximately 8% of total orders
+
+**Why Canary Failed to Detect:**
+1. Canary traffic was only 5% of total traffic (as per policy)
+2. Of that 5%, only 0.4% met the bug condition (non-USD credit card orders)
+3. The error rate for canary was 0.4%, which was below the 1% threshold
+4. Canary metrics showed "success" because the overwhelming majority worked
+5. No one manually reviewed the small error cases
+6. The canary analysis was fully automated without human oversight
+
+**What Happened:**
+- 14:30: Canary deployment at 5% started
+- 14:45: Canary analysis ran, showed 0.4% error rate (below 1% threshold)
+- 15:00: Automated promotion to 100% rollout approved
+- 15:10: Full deployment complete
+- 14:30-15:17: 2,847 orders processed through canary, 12 affected (not detected)
+- 15:17: Alert fires: Payment API error rate at 47% for last 5 minutes
+- 15:17-16:45: All new orders failing with payment integration errors`,
+        `**Customer Impact:**
+        - 1 hour 28 minutes of complete order failure
+        - 100% of orders placed during incident failed
+        - 4,892 orders attempted, 0 successful
+        - 847 customers affected, unable to complete purchases
+        - Cart abandonment at 100%
+        - Customer frustration evident in support tickets
+        - Estimated revenue loss: $156,000
+
+**Business Impact:**
+- 100% order processing failure during peak hours
+- Customer trust damaged
+- Emergency customer communications required
+- Sales team unable to process orders
+- Competitive disadvantage
+- Marketing campaign for the day completely ineffective
+
+**Technical Impact:**
+- All Order Processing API instances serving wrong payment requests
+- Payment API receiving malformed payment requests
+- 100% payment failures for international credit card orders
+- Database filled with failed order records requiring cleanup
+- Rollback to v4.1.5 required
+- Re-deployment of v4.2.0 with fix needed
+- Incident response required 6 engineers from 3 teams`,
+        `**Root Cause:**
+        Multiple factors contributed to the canary deployment failing to detect the critical bug:
+
+1. **Insufficient Canary Traffic:** 5% canary was too small to detect a bug affecting 0.4% of total traffic (8% of canary traffic)
+
+2. **Automated Analysis Without Human Review:** The canary analysis was fully automated and didn't trigger human review for the small error rate
+
+3. **Metric Threshold Too High:** The 1% error rate threshold was inappropriate for a critical payment system
+
+4. **Missing Segment Analysis:** Canary metrics didn't segment by payment method and currency, hiding the localized failure
+
+5. **Insufficient Test Coverage:** The bug could have been caught in integration tests but those tests didn't cover international payment scenarios
+
+6. **Code Review Gap:** The code change was reviewed but reviewer didn't catch the currency code logic error
+
+7. **No Dark Launch:** The new payment integration wasn't tested with shadow traffic before canary
+
+**Contributing Factors:**
+- Test suite missing international payment test cases
+- Canary strategy chosen based on traffic volume, not failure domain
+- No segmented canary analysis by customer segment or payment type
+- Pressure to deploy quickly led to skipping manual verification
+- Assumption that "tests pass = safe to deploy"
+- No feature flags to isolate risky payment changes`,
+        `**Immediate Response (14:30 - 15:17):**
+        1. Canary deployment at 5% started (14:30)
+        2. Canary analysis ran showing 0.4% error rate (14:45)
+        3. Automated promotion to 100% approved (15:00)
+        4. Full rollout completed (15:10)
+        5. Payment API error rate alert fires at 47% (15:17)
+        6. Incident declared, war room established (15:17)
+        7. Initial investigation shows payment request format errors (15:20)
+        8. Identified v4.2.0 deployment as likely cause (15:25)
+
+**Mitigation (15:17 - 16:45):**
+        1. Decision: Rollback to v4.1.5 immediately (15:30)
+        2. Rollback initiated (15:35)
+        3. v4.1.5 deployed to all instances (15:45)
+        4. Rollback verified - error rate dropping (15:55)
+        5. Payment processing recovering (16:00)
+        6. Order processing returning to normal (16:15)
+        7. All systems verified operational (16:45 - RESOLVED)
+
+**Post-Incident (16:45 - 18:00):**
+        1. Analyzed failed orders - all non-USD credit card transactions (16:50)
+        2. Identified currency code logic bug in v4.2.0 payment module (17:00)
+        3. Created fix for the currency code handling (17:15)
+        4. Added international payment test cases to test suite (17:30)
+        5. Incident closed after comprehensive review (18:00)`
+      ]
+    );
+    
+    const incident8Id = incident8Result.rows[0].id;
+    console.log('Created Incident 8:', incident8Result.rows[0].incident_number);
+
+    // Timeline events for Incident 8
+    const incident8Timeline = [
+      { type: 'detected', desc: 'Canary deployment of Order Processing API v4.2.0 at 5% traffic started.', user: 'iris.taylor@company.com', time: '2025-02-10T14:30:00Z' },
+      { type: 'action', desc: 'Canary analysis completed: 0.4% error rate - below 1% threshold. Automated promotion to 100% approved.', user: 'iris.taylor@company.com', time: '2025-02-10T14:45:00Z' },
+      { type: 'action', desc: 'Full rollout of v4.2.0 to 100% initiated.', user: 'iris.taylor@company.com', time: '2025-02-10T15:00:00Z' },
+      { type: 'action', desc: 'Full rollout completed. All Order Processing API instances now running v4.2.0.', user: 'iris.taylor@company.com', time: '2025-02-10T15:10:00Z' },
+      { type: 'detected', desc: 'CRITICAL ALERT: Payment API error rate at 47% for last 5 minutes. All orders failing at payment processing.', user: 'iris.taylor@company.com', time: '2025-02-10T15:17:00Z' },
+      { type: 'investigation', desc: 'War room established. Investigating payment request format errors from Order Processing API.', user: 'bob.smith@company.com', time: '2025-02-10T15:17:00Z' },
+      { type: 'investigation', desc: 'Identified v4.2.0 deployment as likely cause - payment request malformed for international orders.', user: 'bob.smith@company.com', time: '2025-02-10T15:25:00Z' },
+      { type: 'action', desc: 'Decision made to rollback to v4.1.5 immediately. Initiating rollback procedure.', user: 'bob.smith@company.com', time: '2025-02-10T15:30:00Z' },
+      { type: 'action', desc: 'Rolling back to v4.1.5. Applying previous known-good version to all instances.', user: 'carol.williams@company.com', time: '2025-02-10T15:35:00Z' },
+      { type: 'action', desc: 'v4.1.5 deployed to all instances. Monitoring error rates.', user: 'carol.williams@company.com', time: '2025-02-10T15:45:00Z' },
+      { type: 'action', desc: 'Error rates dropping. Payment processing recovering. Services returning to normal.', user: 'carol.williams@company.com', time: '2025-02-10T15:55:00Z' },
+      { type: 'mitigated', desc: 'Order processing fully restored. Payment success rate at 100%. Rollback successful.', user: 'bob.smith@company.com', time: '2025-02-10T16:00:00Z' },
+      { type: 'action', desc: 'Order processing returning to normal. Verifying all orders processing correctly.', user: 'carol.williams@company.com', time: '2025-02-10T16:15:00Z' },
+      { type: 'resolved', desc: 'All systems verified operational. Incident resolved. Root cause identified as currency code bug.', user: 'bob.smith@company.com', time: '2025-02-10T16:45:00Z' },
+      { type: 'investigation', desc: 'Post-incident analysis: All failed orders were non-USD credit card transactions. Bug in currency handling logic.', user: 'bob.smith@company.com', time: '2025-02-10T16:50:00Z' },
+      { type: 'action', desc: 'Created fix for currency code handling in payment integration module.', user: 'bob.smith@company.com', time: '2025-02-10T17:15:00Z' },
+    ];
+
+    for (const event of incident8Timeline) {
+      await pool.query(
+        `INSERT INTO timeline_events (incident_id, event_type, description, user_id, created_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [incident8Id, event.type, event.desc, userIds[event.user], event.time]
+      );
+    }
+
+    // Action items for Incident 8
+    const incident8Actions = [
+      { desc: 'Increase canary traffic percentage for critical payment systems from 5% to 20%', user: 'iris.taylor@company.com', completed: true },
+      { desc: 'Add segmented canary analysis by payment method and currency', user: 'iris.taylor@company.com', completed: true },
+      { desc: 'Lower error rate threshold for canary from 1% to 0.1% for payment systems', user: 'bob.smith@company.com', completed: true },
+      { desc: 'Add mandatory human review for canary analysis before promotion', user: 'carol.williams@company.com', completed: true },
+      { desc: 'Add comprehensive international payment test cases to test suite', user: 'bob.smith@company.com', completed: true },
+      { desc: 'Implement feature flag for risky payment integration changes', user: 'carol.williams@company.com', completed: false },
+      { desc: 'Implement dark launch for payment integration changes with shadow traffic', user: 'iris.taylor@company.com', completed: false },
+      { desc: 'Add automated canary analysis for specific error patterns, not just overall error rate', user: 'iris.taylor@company.com', completed: true },
+    ];
+
+    for (const action of incident8Actions) {
+      await pool.query(
+        `INSERT INTO action_items (incident_id, description, assigned_to_id, completed)
+         VALUES ($1, $2, $3, $4)`,
+        [incident8Id, action.desc, userIds[action.user], action.completed]
+      );
+    }
+
+    // Link services to Incident 8
+    const incident8Services = ['Order Processing API', 'Payment API', 'Billing API'];
+    for (const serviceName of incident8Services) {
+      await pool.query(
+        `INSERT INTO incident_services (incident_id, runbook_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [incident8Id, runbookIds[serviceName]]
+      );
+    }
+
+    console.log('Created Incident 8 with timeline and action items');
+
+    // ============================================================================
+    // INCIDENT 9: Release Failed - Insufficient Load Testing in Production-Like Environment
+    // ============================================================================
+    console.log('Creating Incident 9: Release Failed - Load Testing Gap...');
+    
+    const incident9Result = await pool.query(
+      `INSERT INTO incidents (
+        incident_number, title, description, severity, status,
+        incident_lead_id, reporter_id, created_at, detected_at,
+        mitigated_at, resolved_at, closed_at, problem_statement, impact, causes, steps_to_resolve
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      ON CONFLICT (incident_number) DO UPDATE SET
+        title = $2, description = $3, severity = $4, status = $5
+      RETURNING *`,
+      [
+        'INC-2025-007',
+        'Notification Service Release Failure - Database Connection Pool Exhausted Due to Load Test Gap',
+        'Critical release failure of Notification Service v3.8.0 that caused complete notification delivery failure. The release passed all staging tests but failed in production due to significantly different load patterns. The staging environment had only 10% of production traffic volume, and the new version introduced a connection leak that only manifested under high load. Database connection pool exhausted within 30 minutes of production deployment.',
+        'high',
+        'resolved',
+        userIds['frank.miller@company.com'],
+        userIds['henry.moore@company.com'],
+        '2025-02-12T10:15:00Z',
+        '2025-02-12T10:15:00Z',
+        '2025-02-12T11:30:00Z',
+        '2025-02-12T14:00:00Z',
+        '2025-02-12T16:30:00Z',
+        `At 10:15 UTC on February 12, 2025, the Notification Service v3.8.0 was deployed to production. The release had passed all staging tests and was approved for production deployment. However, within 30 minutes of production deployment, database connection pool exhaustion caused complete notification delivery failure.
+
+**What Changed in v3.8.0:**
+The release included a refactored message queue consumer that improved message processing throughput. The new implementation:
+- Created a new database connection for each batch of messages processed
+- Failed to properly close connections when errors occurred
+- Had connection leak under high-volume scenarios
+
+**Why Staging Didn't Catch It:**
+1. **Traffic Volume Difference:** Staging environment had only ~1,000 messages/hour vs. production's ~100,000 messages/hour
+2. **Load Test Duration:** Load tests in staging ran for only 15 minutes, but connection leak manifests after ~20 minutes
+3. **Connection Pool Size:** Staging had 50 connection pool limit vs. production's 200 (leak rate per connection was small but accumulated)
+4. **Error Rate Masking:** In staging, the error rate was 0.5% (below alert threshold) but scaled linearly with traffic
+
+**What Happened in Production:**
+- 10:15: Deployment to production begins
+- 10:20: New version serving 10% of traffic
+- 10:25: Connection pool at 60% (growing faster than expected)
+- 10:30: Connection pool exhausted (200/200 connections)
+- 10:30-11:30: All notification delivery attempts fail with "connection pool exhausted" errors
+- 10:45: Alert fires - notification delivery failure rate at 100%
+
+**The Impact Scale:**
+- Production has 100x more traffic than staging
+- The connection leak rate was manageable at staging scale but catastrophic at production scale
+- Each minute of production traffic = 1 week of staging traffic in terms of connection usage`,
+        `**Customer Impact:**
+        - 1 hour 15 minutes of notification delivery failure
+        - 0 notifications delivered during incident
+        - 45,000 email notifications queued but never sent
+        - 12,000 SMS notifications failed to deliver
+        - 8,500 push notifications not delivered
+        - Users did not receive: order confirmations, shipping updates, password resets, security alerts
+        - Customer confusion and frustration
+        - 234 support tickets related to missing notifications
+
+**Business Impact:**
+- 100% notification delivery failure during business hours
+- Order confirmation emails not sent - customers unsure if orders placed
+- Shipping updates not delivered - increased customer support queries
+- Security alerts not delivered - potential security risk
+- Marketing campaign for the day was ineffective
+- SMS notification revenue loss ($4,200)
+- Customer trust impacted
+
+**Technical Impact:**
+- Database connection pool exhausted at 200/200 connections
+- All notification workers blocked waiting for connections
+- Message queue (Kafka) consumer lag grew to 50,000 messages
+- PostgreSQL CPU spiked to 95% from connection overhead
+- Rollback required but couldn't complete cleanly (stuck connections)
+- Emergency restart of all notification service pods needed
+- Manual queue drain and replay required
+- 4-engineer team engaged for 5+ hours`,
+        `**Root Cause:**
+        The release failed due to fundamental gaps in load testing that allowed a connection leak to propagate to production:
+
+1. **Environment Parity Gap:** Staging had 10% of production traffic volume, making load-related issues invisible
+
+2. **Load Test Duration Too Short:** 15-minute load tests were insufficient - the connection leak only manifests after ~20 minutes of sustained load
+
+3. **Connection Pool Not Monitored:** No specific monitoring for connection pool utilization during load tests
+
+4. **Linear Scaling Assumption:** Assumed the leak would scale linearly and be caught, but didn't account for cumulative effect
+
+5. **No Production-Like Load Testing:** Never performed load testing with production-volume traffic before release
+
+6. **Code Review Gap:** The code change was reviewed but the connection management logic wasn't flagged as risky
+
+7. **Insufficient Staging Resources:** Cost concerns led to smaller staging database, preventing production-like testing
+
+**Contributing Factors:**
+- Staging environment budget constraints
+- Pressure to meet release deadline
+- Previous releases "worked fine" in staging = false confidence
+- No automated load testing in CI/CD pipeline
+- Connection pool configuration different between staging (50) and production (200)
+- Monitoring focused on success rate, not resource utilization
+- No canary deployment to catch issue before full rollout`,
+        `**Immediate Response (10:15 - 11:30):**
+        1. Notification Service v3.8.0 deployment to production begins (10:15)
+        2. New version at 10% traffic, monitoring closely (10:20)
+        3. Connection pool utilization growing faster than expected (10:25)
+        4. Connection pool exhausted - 200/200 connections in use (10:30)
+        5. All notification delivery failing with pool exhaustion errors (10:30)
+        6. Alert fires: 100% notification delivery failure (10:45)
+        7. War room established, incident declared (10:45)
+        8. Attempted graceful rollback - failed due to stuck connections (11:00)
+        9. Emergency: Force-kill all notification service pods (11:15)
+        10. Connections finally released when pods terminated (11:20)
+        11. Rollback to v3.7.3 initiated (11:25)
+        12. v3.7.3 deployed, service recovering (11:30 - MITIGATED)
+
+**Full Resolution (11:30 - 14:00):**
+        1. Service recovering, but message queue backlog exists (11:30)
+        2. Kafka consumer lag at 50,000 messages (11:45)
+        3. Scaled up notification worker pods to handle backlog (12:00)
+        4. Database connection pool monitoring added to dashboard (12:15)
+        5. Consumer lag decreasing as backlog processes (12:30)
+        6. All pending notifications delivered (13:30)
+        7. Queue backlog cleared, service fully operational (14:00 - RESOLVED)
+
+**Post-Incident (14:00 - 16:30):**
+        1. Root cause analysis: connection leak in v3.8.0 message consumer (14:15)
+        2. Fixed the connection leak in the code (14:30)
+        3. Identified the gap: staging load testing insufficient (14:45)
+        4. Added connection pool monitoring to all services (15:00)
+        5. Documented new load testing requirements (15:30)
+        6. Incident closed after full review (16:30)`
+      ]
+    );
+    
+    const incident9Id = incident9Result.rows[0].id;
+    console.log('Created Incident 9:', incident9Result.rows[0].incident_number);
+
+    // Timeline events for Incident 9
+    const incident9Timeline = [
+      { type: 'detected', desc: 'Notification Service v3.8.0 deployment to production begins. All tests passed in staging.', user: 'henry.moore@company.com', time: '2025-02-12T10:15:00Z' },
+      { type: 'action', desc: 'New version at 10% traffic. Monitoring metrics closely.', user: 'henry.moore@company.com', time: '2025-02-12T10:20:00Z' },
+      { type: 'investigation', desc: 'Database connection pool utilization growing faster than expected - at 60% after 10 minutes.', user: 'frank.miller@company.com', time: '2025-02-12T10:25:00Z' },
+      { type: 'detected', desc: 'CRITICAL: Database connection pool exhausted - 200/200 connections in use. All notification delivery failing.', user: 'frank.miller@company.com', time: '2025-02-12T10:30:00Z' },
+      { type: 'investigation', desc: 'Alert fires: 100% notification delivery failure rate. War room established.', user: 'frank.miller@company.com', time: '2025-02-12T10:45:00Z' },
+      { type: 'action', desc: 'Attempting graceful rollback to v3.7.3. Failed - stuck connections preventing clean shutdown.', user: 'frank.miller@company.com', time: '2025-02-12T11:00:00Z' },
+      { type: 'action', desc: 'Emergency decision: Force-kill all notification service pods to release stuck connections.', user: 'frank.miller@company.com', time: '2025-02-12T11:15:00Z' },
+      { type: 'action', desc: 'Connections released after pod termination. Initiating clean rollback.', user: 'frank.miller@company.com', time: '2025-02-12T11:20:00Z' },
+      { type: 'action', desc: 'Rolling back to v3.7.3. Applying previous known-good version.', user: 'henry.moore@company.com', time: '2025-02-12T11:25:00Z' },
+      { type: 'action', desc: 'v3.7.3 deployed. Service recovering, monitoring connection pool.', user: 'henry.moore@company.com', time: '2025-02-12T11:30:00Z' },
+      { type: 'mitigated', desc: 'Notification service recovered. Connection pool stable. Error rate dropping.', user: 'frank.miller@company.com', time: '2025-02-12T11:30:00Z' },
+      { type: 'investigation', desc: 'Message queue backlog at 50,000 messages. Scaling workers to process pending notifications.', user: 'henry.moore@company.com', time: '2025-02-12T11:45:00Z' },
+      { type: 'action', desc: 'Scaled up notification worker pods from 10 to 30 to handle backlog.', user: 'henry.moore@company.com', time: '2025-02-12T12:00:00Z' },
+      { type: 'action', desc: 'Added real-time connection pool monitoring to service dashboard.', user: 'frank.miller@company.com', time: '2025-02-12T12:15:00Z' },
+      { type: 'action', desc: 'Consumer lag decreasing as backlog processes. Service returning to normal.', user: 'henry.moore@company.com', time: '2025-02-12T12:30:00Z' },
+      { type: 'action', desc: 'All pending notifications delivered. Queue backlog cleared.', user: 'henry.moore@company.com', time: '2025-02-12T13:30:00Z' },
+      { type: 'resolved', desc: 'All systems verified operational. Database connections stable. Incident resolved.', user: 'frank.miller@company.com', time: '2025-02-12T14:00:00Z' },
+      { type: 'investigation', desc: 'Post-incident analysis: Connection leak in v3.8.0 message consumer - connections not closed on error path.', user: 'frank.miller@company.com', time: '2025-02-12T14:15:00Z' },
+      { type: 'action', desc: 'Fixed connection leak in code - added proper connection cleanup in error handler.', user: 'frank.miller@company.com', time: '2025-02-12T14:30:00Z' },
+    ];
+
+    for (const event of incident9Timeline) {
+      await pool.query(
+        `INSERT INTO timeline_events (incident_id, event_type, description, user_id, created_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [incident9Id, event.type, event.desc, userIds[event.user], event.time]
+      );
+    }
+
+    // Action items for Incident 9
+    const incident9Actions = [
+      { desc: 'Implement production-volume load testing in dedicated environment', user: 'henry.moore@company.com', completed: false },
+      { desc: 'Extend load test duration to minimum 30 minutes to catch connection leaks', user: 'frank.miller@company.com', completed: true },
+      { desc: 'Add connection pool utilization monitoring during all load tests', user: 'frank.miller@company.com', completed: true },
+      { desc: 'Implement mandatory canary deployment for all releases (10% → 50% → 100%)', user: 'henry.moore@company.com', completed: true },
+      { desc: 'Add connection leak detection to CI/CD pipeline static analysis', user: 'frank.miller@company.com', completed: false },
+      { desc: 'Create production-like staging environment with proper resource allocation', user: 'alice.johnson@company.com', completed: false },
+      { desc: 'Document connection management best practices for all services', user: 'frank.miller@company.com', completed: true },
+      { desc: 'Add connection pool exhaustion alerts to production monitoring', user: 'frank.miller@company.com', completed: true },
+    ];
+
+    for (const action of incident9Actions) {
+      await pool.query(
+        `INSERT INTO action_items (incident_id, description, assigned_to_id, completed)
+         VALUES ($1, $2, $3, $4)`,
+        [incident9Id, action.desc, userIds[action.user], action.completed]
+      );
+    }
+
+    // Link services to Incident 9
+    const incident9Services = ['Notification Service', 'Email Service'];
+    for (const serviceName of incident9Services) {
+      await pool.query(
+        `INSERT INTO incident_services (incident_id, runbook_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [incident9Id, runbookIds[serviceName]]
+      );
+    }
+
+    console.log('Created Incident 9 with timeline and action items');
+
     console.log('Seed completed successfully!');
   } catch (error) {
     console.error('Error seeding database:', error);

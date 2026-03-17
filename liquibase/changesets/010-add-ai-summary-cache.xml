@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="010-add-ai-summary-cache" author="system">
+        <comment>Add columns to cache AI-generated summaries for incidents</comment>
+        
+        <!-- Add AI summary cache columns -->
+        <addColumn tableName="incidents">
+            <column name="ai_summary" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="ai_summary_generated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="incidents" columnName="ai_summary"/>
+            <dropColumn tableName="incidents" columnName="ai_summary_generated_at"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

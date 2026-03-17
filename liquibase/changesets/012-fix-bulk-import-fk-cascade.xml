@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <!-- Fix: bulk_import_items.incident_id FK should SET NULL on delete
+         so that import history is preserved when an incident is deleted -->
+    <changeSet id="012-fix-bulk-import-incident-fk" author="sre-platform">
+        <comment>Change fk_bulk_import_items_incident to ON DELETE SET NULL so deleting an incident does not fail</comment>
+        <dropForeignKeyConstraint baseTableName="bulk_import_items" constraintName="fk_bulk_import_items_incident"/>
+        <addForeignKeyConstraint
+            baseTableName="bulk_import_items"
+            baseColumnNames="incident_id"
+            referencedTableName="incidents"
+            referencedColumnNames="id"
+            constraintName="fk_bulk_import_items_incident"
+            onDelete="SET NULL"/>
+    </changeSet>
+
+    <!-- Fix: bulk_import_items.postmortem_id FK should SET NULL on delete
+         so that import history is preserved when a postmortem is deleted -->
+    <changeSet id="012-fix-bulk-import-postmortem-fk" author="sre-platform">
+        <comment>Change fk_bulk_import_items_postmortem to ON DELETE SET NULL so deleting a postmortem does not fail</comment>
+        <dropForeignKeyConstraint baseTableName="bulk_import_items" constraintName="fk_bulk_import_items_postmortem"/>
+        <addForeignKeyConstraint
+            baseTableName="bulk_import_items"
+            baseColumnNames="postmortem_id"
+            referencedTableName="postmortems"
+            referencedColumnNames="id"
+            constraintName="fk_bulk_import_items_postmortem"
+            onDelete="SET NULL"/>
+    </changeSet>
+
+</databaseChangeLog>

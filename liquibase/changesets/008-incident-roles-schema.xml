@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <!-- Create incident_roles table for flexible role management -->
+    <changeSet id="008-create-incident-roles-table" author="sre-platform">
+        <createTable tableName="incident_roles">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="incident_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_incident_roles_incident" 
+                           references="incidents(id)" deleteCascade="true"/>
+            </column>
+            <column name="role_type" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_incident_roles_user" 
+                           references="users(id)"/>
+            </column>
+            <column name="assigned_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assigned_by_id" type="uuid">
+                <constraints foreignKeyName="fk_incident_roles_assigned_by" 
+                           references="users(id)"/>
+            </column>
+            <column name="removed_at" type="timestamp"/>
+            <column name="removed_by_id" type="uuid">
+                <constraints foreignKeyName="fk_incident_roles_removed_by" 
+                           references="users(id)"/>
+            </column>
+        </createTable>
+
+        <!-- Index for querying roles by incident -->
+        <createIndex tableName="incident_roles" indexName="idx_incident_roles_incident">
+            <column name="incident_id"/>
+        </createIndex>
+
+        <!-- Partial index for active roles only (where removed_at IS NULL) -->
+        <sql>
+            CREATE INDEX idx_incident_roles_active 
+            ON incident_roles(incident_id, role_type) 
+            WHERE removed_at IS NULL;
+        </sql>
+
+        <!-- Unique constraint: same person can't have same role multiple times unless removed -->
+        <addUniqueConstraint 
+            tableName="incident_roles" 
+            columnNames="incident_id, role_type, user_id, removed_at"
+            constraintName="uq_incident_role_assignment"/>
+    </changeSet>
+
+    <!-- Migrate existing incident_lead_id data to incident_roles -->
+    <changeSet id="008-migrate-incident-leads" author="sre-platform">
+        <sql>
+            INSERT INTO incident_roles (incident_id, role_type, user_id, assigned_at)
+            SELECT 
+                id as incident_id,
+                'incident_lead' as role_type,
+                incident_lead_id as user_id,
+                created_at as assigned_at
+            FROM incidents
+            WHERE incident_lead_id IS NOT NULL;
+        </sql>
+    </changeSet>
+
+    <!-- Migrate existing reporter_id data to incident_roles -->
+    <changeSet id="008-migrate-reporters" author="sre-platform">
+        <sql>
+            INSERT INTO incident_roles (incident_id, role_type, user_id, assigned_at)
+            SELECT 
+                id as incident_id,
+                'caller' as role_type,
+                reporter_id as user_id,
+                created_at as assigned_at
+            FROM incidents
+            WHERE reporter_id IS NOT NULL;
+        </sql>
+    </changeSet>
+
+    <!-- Add comment to document role types -->
+    <changeSet id="008-add-role-type-comment" author="sre-platform">
+        <sql>
+            COMMENT ON COLUMN incident_roles.role_type IS
+            'Valid values: incident_lead, caller, dmim, communications_lead';
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

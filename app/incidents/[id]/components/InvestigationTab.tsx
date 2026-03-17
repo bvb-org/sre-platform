@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, Circle, AlertCircle, Info, RefreshCw, Pause, Search } from 'lucide-react';
 import { formatTimestamp, formatDate } from '@/lib/utils';
-import { KnowledgeGraphRecommendations } from './KnowledgeGraphRecommendations';
-import { RACIMatrix } from './RACIMatrix';
+import { KnowledgeGraphRecommendations, RecommendationWithActions } from './KnowledgeGraphRecommendations';
+import { InvestigationStreams } from './InvestigationStreams';
+import { AddStreamModal, StreamFormData } from './AddStreamModal';
 
 type TimelineEvent = {
   id: string;
@@ -97,6 +98,69 @@ export function InvestigationTab({ incident, onRefresh }: InvestigationTabProps)
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // State for AddStreamModal
+  const [isAddStreamModalOpen, setIsAddStreamModalOpen] = useState(false);
+  const [prefilledStreamData, setPrefilledStreamData] = useState<StreamFormData | undefined>(undefined);
+  const [availableUsers, setAvailableUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [streamsRefreshTrigger, setStreamsRefreshTrigger] = useState(0);
+
+  // Fetch available users for stream assignment
+  useEffect(() => {
+    const fetchAvailableUsers = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/users');
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableUsers(data);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+    fetchAvailableUsers();
+  }, []);
+
+  // Handler for creating stream from recommendation
+  const handleCreateStreamFromRecommendation = (data: RecommendationWithActions) => {
+    setPrefilledStreamData({
+      name: data.name,
+      streamType: data.streamType,
+      hypothesis: data.hypothesis,
+      initialTasks: data.initialTasks,
+    });
+    setIsAddStreamModalOpen(true);
+  };
+
+  // Handler for submitting the stream form
+  const handleCreateStream = async (data: StreamFormData) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/incidents/${incident.id}/streams`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          streamType: data.streamType,
+          hypothesis: data.hypothesis,
+          assignedToId: data.assignedToId,
+          initialTasks: data.initialTasks,
+        }),
+      });
+
+      if (response.ok) {
+        // Close modal and refresh
+        setIsAddStreamModalOpen(false);
+        setPrefilledStreamData(undefined);
+        // Trigger refresh of streams without full page reload
+        setStreamsRefreshTrigger(prev => prev + 1);
+        onRefresh(); // Refresh the incident data
+      } else {
+        console.error('Error creating stream:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error creating stream:', error);
+    }
+  };
 
   // Fetch data when showing menus
   useEffect(() => {
@@ -255,27 +319,12 @@ export function InvestigationTab({ incident, onRefresh }: InvestigationTabProps)
     textareaRef.current?.focus();
   };
 
-  const insertText = (text: string) => {
-    const cursorPosition = textareaRef.current?.selectionStart || 0;
-    const textBeforeCursor = newUpdate.substring(0, cursorPosition);
-    const textAfterCursor = newUpdate.substring(cursorPosition);
-    const lastSlash = textBeforeCursor.lastIndexOf('/');
-
-    const newText =
-      textBeforeCursor.substring(0, lastSlash) +
-      text +
-      textAfterCursor;
-
-    setNewUpdate(newText);
-    textareaRef.current?.focus();
-  };
-
   const submitUpdate = async () => {
     if (!newUpdate.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/incidents/${incident.id}/timeline`, {
+      const response = await fetch(`http://localhost:3001/api/incidents/${incident.id}/timeline`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -297,14 +346,15 @@ export function InvestigationTab({ incident, onRefresh }: InvestigationTabProps)
 
   return (
     <div className="space-y-6">
-      {/* AI Knowledge Graph Recommendations - Only show for active incidents */}
+      {/* Recommendations from previous incidents - Only show for active incidents */}
       <KnowledgeGraphRecommendations
         incidentId={incident.id}
         incidentStatus={incident.status}
+        onCreateStreamFromRecommendation={handleCreateStreamFromRecommendation}
       />
 
-      {/* RACI Matrix */}
-      <RACIMatrix incidentId={incident.id} />
+      {/* Activity Streams */}
+      <InvestigationStreams incidentId={incident.id} refreshTrigger={streamsRefreshTrigger} />
 
       {/* Add Update Form */}
       <div className="bg-white dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg p-6">
@@ -598,9 +648,9 @@ export function InvestigationTab({ incident, onRefresh }: InvestigationTabProps)
                       <div className="flex-1 pb-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div 
+                            <div
                               className="text-sm text-text-primary dark:text-white prose prose-sm max-w-none dark:prose-invert"
-                              dangerouslySetInnerHTML={{ 
+                              dangerouslySetInnerHTML={{
                                 __html: event.description.replace(
                                   /\[([^\]]+)\]\(([^)]+)\)/g,
                                   '<a href="$2" class="text-status-info hover:text-blue-600 underline">$1</a>'
@@ -659,6 +709,18 @@ export function InvestigationTab({ incident, onRefresh }: InvestigationTabProps)
           )}
         </div>
       </div>
+
+      {/* Add Stream Modal */}
+      <AddStreamModal
+        isOpen={isAddStreamModalOpen}
+        onClose={() => {
+          setIsAddStreamModalOpen(false);
+          setPrefilledStreamData(undefined);
+        }}
+        onSubmit={handleCreateStream}
+        availableUsers={availableUsers}
+        initialData={prefilledStreamData}
+      />
     </div>
   );
 }

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <!-- Bulk Import Sessions -->
+    <changeSet id="011-create-bulk-import-sessions" author="sre-platform">
+        <comment>Create table for bulk import sessions (one per user upload batch)</comment>
+        <createTable tableName="bulk_import_sessions">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="created_by_id" type="uuid">
+                <constraints foreignKeyName="fk_bulk_import_sessions_user" references="users(id)"/>
+            </column>
+            <column name="status" type="varchar(30)" defaultValue="pending">
+                <constraints nullable="false"/>
+            </column>
+            <!-- pending, processing, awaiting_input, completed, failed -->
+            <column name="auto_publish" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_files" type="integer" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="completed_files" type="integer" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="failed_files" type="integer" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- Bulk Import Items (one per uploaded file) -->
+    <changeSet id="011-create-bulk-import-items" author="sre-platform">
+        <comment>Create table for individual import items (one per uploaded document)</comment>
+        <createTable tableName="bulk_import_items">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="session_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_bulk_import_items_session" references="bulk_import_sessions(id)" deleteCascade="true"/>
+            </column>
+            <column name="file_name" type="varchar(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_size" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_type" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Status: uploading, extracting_text, extracting_metadata, looking_up_servicenow, 
+                 generating_incident, generating_postmortem, awaiting_input, completed, failed -->
+            <column name="status" type="varchar(50)" defaultValue="uploading">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status_message" type="text"/>
+            <column name="current_step" type="varchar(100)"/>
+            <!-- Extracted metadata from the document -->
+            <column name="extracted_metadata" type="jsonb"/>
+            <!-- 
+                extracted_metadata structure:
+                {
+                    "incidentNumber": "INC-12345",
+                    "title": "...",
+                    "severity": "critical|high|medium|low",
+                    "detectedAt": "ISO timestamp",
+                    "resolvedAt": "ISO timestamp",
+                    "affectedService": "...",
+                    "summary": "brief summary of the document"
+                }
+            -->
+            <!-- Raw extracted text from the document -->
+            <column name="extracted_text" type="text"/>
+            <!-- AI questions that need user input -->
+            <column name="ai_questions" type="jsonb"/>
+            <!--
+                ai_questions structure:
+                [
+                    {
+                        "id": "uuid",
+                        "question": "...",
+                        "field": "incidentNumber|severity|...",
+                        "answered": false,
+                        "answer": null
+                    }
+                ]
+            -->
+            <!-- References to created entities -->
+            <column name="incident_id" type="uuid">
+                <constraints foreignKeyName="fk_bulk_import_items_incident" references="incidents(id)"/>
+            </column>
+            <column name="postmortem_id" type="uuid">
+                <constraints foreignKeyName="fk_bulk_import_items_postmortem" references="postmortems(id)"/>
+            </column>
+            <column name="error_message" type="text"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="bulk_import_items" indexName="idx_bulk_import_items_session">
+            <column name="session_id"/>
+        </createIndex>
+        <createIndex tableName="bulk_import_items" indexName="idx_bulk_import_items_status">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

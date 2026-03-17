@@ -95,6 +95,15 @@ async function setup() {
     console.log('');
   }
 
+  // Ask for Calendar API key
+  console.log('\n📅 Calendar Feature — API Key\n');
+  console.log('   This key secures the Calendar write endpoints and the Azure DevOps');
+  console.log('   freeze-check integration. A random key will be generated if you skip.\n');
+  const calendarApiKeyInput = await question('   Calendar API key (press Enter to auto-generate): ');
+  const calendarApiKey = calendarApiKeyInput.trim()
+    ? calendarApiKeyInput.trim()
+    : crypto.randomBytes(32).toString('hex');
+
   // Ask for Anthropic API key
   console.log('\n📝 AI Configuration\n');
   const apiKey = await question('   Anthropic API key (press Enter to skip): ');
@@ -129,6 +138,27 @@ async function setup() {
     }
   }
   
+  // Replace Calendar API key placeholders in both backend and frontend vars
+  envContent = envContent.replace(
+    /^CALENDAR_API_KEY=.*/m,
+    `CALENDAR_API_KEY=${calendarApiKey}`
+  );
+  envContent = envContent.replace(
+    /^NEXT_PUBLIC_CALENDAR_API_KEY=.*/m,
+    `NEXT_PUBLIC_CALENDAR_API_KEY=${calendarApiKey}`
+  );
+  if (calendarApiKeyInput.trim()) {
+    console.log('   ✅ Calendar API key configured\n');
+  } else {
+    console.log(`   ✅ Calendar API key auto-generated\n`);
+    console.log('   ┌─────────────────────────────────────────────────────────────┐');
+    console.log(`   │  CALENDAR_API_KEY = ${calendarApiKey.substring(0, 40)}...`);
+    console.log('   │');
+    console.log('   │  Copy this value into your Azure DevOps pipeline variable:');
+    console.log('   │    WATCHTOWER_API_KEY = <above value>  (mark as secret)');
+    console.log('   └─────────────────────────────────────────────────────────────┘\n');
+  }
+
   // Replace the placeholder with the actual key or comment it out
   if (apiKey && apiKey.trim()) {
     envContent = envContent.replace(
@@ -246,8 +276,31 @@ async function setup() {
     }
   }
 
-  // Write .env file
+  // Write root .env file
   fs.writeFileSync('.env', envContent);
+
+  // Write CALENDAR_API_KEY into backend/.env so the Express server picks it up
+  // when running locally (outside Docker). Docker gets it via docker-compose environment block.
+  const backendEnvPath = 'backend/.env';
+  let backendEnvContent = '';
+  if (fs.existsSync(backendEnvPath)) {
+    backendEnvContent = fs.readFileSync(backendEnvPath, 'utf8');
+  } else if (fs.existsSync('backend/.env.example')) {
+    backendEnvContent = fs.readFileSync('backend/.env.example', 'utf8');
+  }
+
+  if (backendEnvContent.match(/^CALENDAR_API_KEY=/m)) {
+    // Replace existing value
+    backendEnvContent = backendEnvContent.replace(
+      /^CALENDAR_API_KEY=.*/m,
+      `CALENDAR_API_KEY=${calendarApiKey}`
+    );
+  } else {
+    // Append it
+    backendEnvContent += `\nCALENDAR_API_KEY=${calendarApiKey}\n`;
+  }
+  fs.writeFileSync(backendEnvPath, backendEnvContent);
+
   console.log('✅ Setup complete!\n');
   
   rl.close();
